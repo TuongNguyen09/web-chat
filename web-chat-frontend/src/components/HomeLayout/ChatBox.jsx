@@ -1,0 +1,809 @@
+import React, { Fragment, useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { AiOutlineSearch } from "react-icons/ai";
+import { BsThreeDotsVertical, BsEmojiSmile, BsMicFill, BsDownload } from "react-icons/bs";
+import { ImAttachment } from "react-icons/im";
+import { IoArrowBack, IoClose } from "react-icons/io5";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { Menu, MenuItem } from "@mui/material";
+import MessageCard from "../MessageCard";
+import { MessageType } from "../../constants/messageType";
+import toast from "react-hot-toast";
+import EmojiPicker from "emoji-picker-react";
+import axios from 'axios';
+import { pickFileMeta } from "../../utils/fileMeta";
+
+const ChatBox = (props) => {
+  const {
+    auth,
+    currentChat,
+    defaultAvatar,
+    defaultGroupImage,
+    onOpenGroupInfo,
+    menuAnchor,
+    isMenuOpen,
+    onMenuOpen,
+    onMenuClose,
+    messageContainerRef,
+    isLoadingOlder,
+    messages,
+    formatDateLabel,
+    onDeleteMessage,
+    content,
+    onChangeContent,
+    onSendMessage,
+    onBack,
+    typingUsers = {},
+    onTypingSignal,
+    presenceByUserId = {},
+  } = props;
+
+  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [pendingType, setPendingType] = useState(MessageType.TEXT);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  /* ---------- Image gallery state ---------- */
+  const [galleryState, setGalleryState] = useState({ open: false, index: 0 });
+
+  const imageAttachments = useMemo(() => {
+    const list = [];
+    messages.forEach((msg) => {
+      (msg.attachments || []).forEach((att) => {
+        if (att?.mimeType?.startsWith("image/")) {
+          list.push({
+            messageId: msg.id,
+            attachmentKey: att.id || att.url,
+            url: att.url,
+            fileName: att.fileName || "Ảnh",
+            senderName: msg.sender?.fullName || "Unknown",
+            timeStamp: msg.timeStamp,
+          });
+        }
+      });
+    });
+    return list;
+  }, [messages]);
+
+  const openGalleryAt = useCallback(
+    (attachmentKey) => {
+      const targetIndex = imageAttachments.findIndex(
+        (item) => item.attachmentKey === attachmentKey || item.url === attachmentKey
+      );
+      if (targetIndex !== -1) {
+        setGalleryState({ open: true, index: targetIndex });
+      }
+    },
+    [imageAttachments]
+  );
+
+  const closeGallery = useCallback(() => {
+    setGalleryState({ open: false, index: 0 });
+  }, []);
+
+  const showPrevImage = useCallback(
+    (e) => {
+      e?.stopPropagation();
+      if (!imageAttachments.length) return;
+      setGalleryState((prev) => ({
+        ...prev,
+        index: (prev.index - 1 + imageAttachments.length) % imageAttachments.length,
+      }));
+    },
+    [imageAttachments.length]
+  );
+
+  const showNextImage = useCallback(
+    (e) => {
+      e?.stopPropagation();
+      if (!imageAttachments.length) return;
+      setGalleryState((prev) => ({
+        ...prev,
+        index: (prev.index + 1) % imageAttachments.length,
+      }));
+    },
+    [imageAttachments.length]
+  );
+
+  useEffect(() => {
+    if (!galleryState.open) return;
+    const handleKey = (event) => {
+      if (event.key === "Escape") closeGallery();
+      if (event.key === "ArrowLeft") showPrevImage();
+      if (event.key === "ArrowRight") showNextImage();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [galleryState.open, closeGallery, showPrevImage, showNextImage]);
+
+  useEffect(() => {
+    if (!galleryState.open) return;
+    if (!imageAttachments.length) {
+      setGalleryState({ open: false, index: 0 });
+      return;
+    }
+    setGalleryState((prev) => ({
+      ...prev,
+      index: Math.min(prev.index, imageAttachments.length - 1),
+    }));
+  }, [imageAttachments, galleryState.open]);
+
+  const currentImage =
+    galleryState.open && imageAttachments.length
+      ? imageAttachments[galleryState.index]
+      : null;
+
+  /* ---------- Existing logic (upload, send, etc.) giữ nguyên ---------- */
+  const partner = currentChat?.members?.find((u) => u.id !== auth.reqUser?.id);
+  const chatTitle = currentChat?.group
+    ? currentChat?.chatName || "Group Chat"
+    : partner?.fullName || "Unknown User";
+  const chatAvatar = currentChat?.group
+    ? currentChat.chatImage || defaultGroupImage
+    : partner?.profilePicture || defaultAvatar;
+
+  const handlePickFile = () => fileInputRef.current?.click();
+
+  const uploadToCloudinary = (file, fileId) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "whatsapp");
+    formData.append("folder", "chat_attachments");
+
+    return axios.post("https://api.cloudinary.com/v1_1/dj923dmx3/auto/upload", formData, {
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        updateFileProgress(fileId, percentCompleted);
+      }
+    }).then(response => response.data);
+  };
+
+  const detectMessageType = (mime) => {
+    if (mime.startsWith("image/")) return MessageType.IMAGE;
+    if (mime.startsWith("video/")) return MessageType.VIDEO;
+    if (mime.startsWith("audio/")) return MessageType.AUDIO;
+    return MessageType.FILE;
+  };
+
+
+  const updateFileProgress = useCallback((fileId, progress) => {
+    setPendingAttachments(prev =>
+      prev.map(item =>
+        item.id === fileId ? { ...item, progress: progress } : item
+      )
+    );
+  }, []);
+
+  const handleFilesSelected = async (evt) => {
+    const files = Array.from(evt.target.files || []);
+    if (!files.length) return;
+
+    const initialAttachments = files.map(file => ({
+      id: crypto.randomUUID(), // ID duy nhất để theo dõi
+      file: file,
+      fileName: file.name,
+      mimeType: file.type,
+      size: file.size,
+      progress: 0, // Progress mới
+      status: 'uploading', // Trạng thái mới
+      url: null
+    }));
+
+    // Hiển thị ngay các file đang tải lên
+    setPendingAttachments(prev => [...prev, ...initialAttachments]);
+    setPendingType(detectMessageType(files.at(-1).type));
+    setIsUploading(true);
+
+    try {
+      const uploadPromises = initialAttachments.map(async (tempAtt) => {
+        const res = await uploadToCloudinary(tempAtt.file, tempAtt.id);
+
+        // Trả về dữ liệu cuối cùng khi tải xong
+        return {
+          ...tempAtt,
+          url: res.secure_url,
+          status: 'uploaded', // Đánh dấu hoàn thành
+          width: res.width,
+          height: res.height,
+          durationMs: res.duration ? res.duration * 1000 : 0,
+        };
+      });
+
+      const uploadedResults = await Promise.all(uploadPromises);
+
+      // Cập nhật state với dữ liệu file đã upload thành công
+      setPendingAttachments(prev => {
+        const finalIds = uploadedResults.map(r => r.id);
+        const others = prev.filter(p => !finalIds.includes(p.id));
+        return [...others, ...uploadedResults];
+      });
+
+    } catch (err) {
+      toast.error("Tải file thất bại");
+      // Đánh dấu các file còn đang 'uploading' là 'error'
+      setPendingAttachments(prev =>
+        prev.map(item =>
+          item.status === 'uploading' ? { ...item, status: 'error', progress: 0 } : item
+        )
+      );
+    } finally {
+      setIsUploading(false);
+      evt.target.value = "";
+    }
+  };
+
+  const handleRemoveAttachment = (attachmentId) => {
+    setPendingAttachments((prev) => {
+      const next = prev.filter((file) => file.id !== attachmentId);
+      if (next.length === 0) setPendingType(MessageType.TEXT);
+      return next;
+    });
+  };
+
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
+
+  const notifyTyping = useCallback(
+    (nextState) => {
+      if (!onTypingSignal || !currentChat?.id) return;
+      onTypingSignal(currentChat.id, nextState);
+    },
+    [onTypingSignal, currentChat?.id]
+  );
+
+  const scheduleStopTyping = useCallback(() => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTypingRef.current) {
+        notifyTyping(false);
+        isTypingRef.current = false;
+      }
+    }, 3000);
+  }, [notifyTyping]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current) {
+        notifyTyping(false);
+        isTypingRef.current = false;
+      }
+    };
+  }, [notifyTyping, currentChat?.id]);
+
+  const handleContentChange = (value) => {
+    onChangeContent(value);
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      if (isTypingRef.current) {
+        notifyTyping(false);
+        isTypingRef.current = false;
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (!isTypingRef.current) {
+      notifyTyping(true);
+      isTypingRef.current = true;
+    }
+    scheduleStopTyping();
+  };
+
+  const typingDisplayNames = useMemo(() => {
+    if (!typingUsers) return [];
+    return Object.entries(typingUsers)
+      .filter(([userId]) => userId !== auth.reqUser?.id)
+      .map(([, name]) => name || "Ai đó");
+  }, [typingUsers, auth.reqUser?.id]);
+
+  const typingLabel = useMemo(() => {
+    const count = typingDisplayNames.length;
+    if (!count) return "";
+    if (count === 1) return `${typingDisplayNames[0]} đang nhập...`;
+    if (count === 2) return `${typingDisplayNames[0]} và ${typingDisplayNames[1]} đang nhập...`;
+    return `${typingDisplayNames[0]} và ${count - 1} người khác đang nhập...`;
+  }, [typingDisplayNames]);
+
+  const handleSend = () => {
+    const trimmed = content.trim();
+    // Lọc chỉ lấy các file đã tải lên thành công
+    const finalAttachments = pendingAttachments.filter(att => att.status === 'uploaded');
+
+    const hasAttachments = finalAttachments.length > 0;
+    if (!hasAttachments && !trimmed) return;
+
+    const payload = {
+      chatId: currentChat.id,
+      senderId: auth.reqUser?.id,
+      type: hasAttachments ? pendingType : MessageType.TEXT,
+      content: trimmed || null,
+      attachments: finalAttachments, // Dùng file đã lọc
+      linkPreview: null,
+      metadata: {},
+    };
+
+    onSendMessage(payload);
+    // Xóa các file đã gửi khỏi pendingAttachments
+    setPendingAttachments(prev => prev.filter(att => att.status !== 'uploaded'));
+    onChangeContent("");
+    setPendingType(MessageType.TEXT);
+    if (isTypingRef.current) {
+      notifyTyping(false);
+      isTypingRef.current = false;
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
+
+  const canSend = content.trim().length > 0 || pendingAttachments.some(att => att.status === 'uploaded');
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
+  const emojiButtonRef = useRef(null);
+
+  const QUICK_REACTIONS = ["😀", "😂", "😍", "😎", "😭", "👍", "🙏", "🔥", "🎉", "🤯", "🥳"];
+
+  const handleEmojiClick = (emojiData) => {
+    onChangeContent((prev) => `${prev}${emojiData.emoji}`);
+  };
+
+  const handleSendReaction = (emoji) => {
+    if (!currentChat || !auth.reqUser?.id) return;
+    onSendMessage({
+      chatId: currentChat.id,
+      senderId: auth.reqUser.id,
+      type: MessageType.STICKER,
+      content: emoji,
+      attachments: [],
+      linkPreview: null,
+      metadata: { kind: "emoji" },
+    });
+    setShowEmojiPicker(false);
+  };
+
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handleClickOutside = (event) => {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target) &&
+        !emojiButtonRef.current?.contains(event.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPicker]);
+
+  const downloadFile = async (url, filename = "attachment") => {
+    try {
+      const response = await fetch(url, { credentials: "omit" });
+      if (!response.ok) throw new Error("Download failed");
+
+      const blob = await response.blob();
+      const tempUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = tempUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+      URL.revokeObjectURL(tempUrl);
+    } catch (err) {
+      toast.error("Không tải được file");
+      console.error(err);
+    }
+  };
+
+  const downloadAllFromMessage = useCallback((messageId) => {
+    const target = messages.find((m) => m.id === messageId);
+    if (!target) return;
+    const imgs = (target.attachments || []).filter((att) =>
+      att.mimeType?.startsWith("image/")
+    );
+    imgs.forEach((img, idx) =>
+      downloadFile(img.url, img.fileName || `image-${idx + 1}`)
+    );
+  }, [messages]);
+
+  const partnerPresence = !currentChat?.group && partner
+    ? presenceByUserId[partner.id]
+    : null;
+  const isPartnerOnline = Boolean(partnerPresence?.online);
+
+  const formatLastSeen = (timestamp) => {
+    if (!timestamp) return "Offline";
+    const diff = Date.now() - timestamp;
+    if (diff < 60_000) return "Vừa hoạt động";
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} phút trước`;
+    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} giờ trước`;
+    return `Hoạt động ${new Date(timestamp).toLocaleDateString("vi-VN")}`;
+  };
+
+  const statusLabel = currentChat?.group
+    ? `${currentChat.members?.length || 0} thành viên`
+    : isPartnerOnline
+      ? "Online"
+      : formatLastSeen(partnerPresence?.lastSeen);
+
+  return (
+    <div className="h-full flex flex-col bg-[#efeae2]">
+      {/* ----- Header giữ nguyên ----- */}
+      <div className="flex items-center justify-between bg-[#f0f2f5] px-4 py-3 border-b border-gray-300">
+        <div className="flex items-center gap-3">
+          {/* Back button for mobile */}
+          <button
+            onClick={onBack}
+            className="md:hidden mr-2 text-gray-600 hover:text-gray-900"
+          >
+            <IoArrowBack size={24} />
+          </button>
+
+          <div className="flex items-center gap-3 cursor-pointer" onClick={onOpenGroupInfo}>
+            <div className="relative">
+              <img
+                className="h-10 w-10 rounded-full object-cover"
+                src={chatAvatar}
+                alt="chat"
+              />
+              {!currentChat?.group && isPartnerOnline && (
+                <span
+                  className="
+          absolute -top-0.5 -left-0.5
+          h-3.5 w-3.5 rounded-full
+          border-2 border-white
+          bg-[#25D366]
+        "
+                />
+              )}
+            </div>
+
+            <div>
+              <p className="font-medium text-gray-800">{chatTitle}</p>
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                {!currentChat?.group && (
+                  <span
+                    className={`
+            inline-block h-2 w-2 rounded-full
+            ${isPartnerOnline ? "bg-[#25D366]" : "bg-gray-300"}
+          `}
+                  />
+                )}
+                {statusLabel}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-gray-600">
+          <AiOutlineSearch className="cursor-pointer hover:text-gray-800" size={20} />
+          <BsThreeDotsVertical
+            className="cursor-pointer hover:text-gray-800"
+            size={20}
+            onClick={onMenuOpen}
+          />
+
+          <Menu
+            anchorEl={menuAnchor}
+            open={isMenuOpen}
+            onClose={onMenuClose}
+          >
+            <MenuItem onClick={() => { onMenuClose(); onOpenGroupInfo(); }}>
+              Thông tin nhóm
+            </MenuItem>
+          </Menu>
+        </div>
+      </div>
+      {/* ----- Messages Area ----- */}
+      <div
+        ref={messageContainerRef}
+        className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-opacity-10"
+      >
+        {isLoadingOlder && (
+          <div className="flex justify-center py-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#00a884] border-t-transparent" />
+          </div>
+        )}
+
+        <div className="px-4 py-6 space-y-2">
+          {messages.map((message, index) => {
+            const currentDate = message.timeStamp ? formatDateLabel(message.timeStamp) : null;
+            const previousDate =
+              index > 0 && messages[index - 1].timeStamp
+                ? formatDateLabel(messages[index - 1].timeStamp)
+                : null;
+            const showDivider = currentDate && currentDate !== previousDate;
+
+            return (
+              <Fragment key={message.id}>
+                {showDivider && (
+                  <div className="flex justify-center my-4">
+                    <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                      {currentDate}
+                    </div>
+                  </div>
+                )}
+                <MessageCard
+                  message={message}
+                  isRequestMessage={message.sender?.id !== auth.reqUser?.id}
+                  onDelete={onDeleteMessage}
+                  onImageClick={(attachment) =>
+                    openGalleryAt(attachment?.id || attachment?.url)
+                  }
+                />
+              </Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ----- Input area giữ nguyên ----- */}
+      <div className="bg-[#f0f2f5] p-4 border-t border-gray-300">
+        <div className="flex flex-col gap-2 bg-white rounded-lg px-3 py-2 relative">
+
+          <div className="flex items-center gap-2">
+            <button
+              ref={emojiButtonRef}
+              type="button"
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+              title="Chèn emoji"
+            >
+              <BsEmojiSmile size={20} />
+            </button>
+            <ImAttachment
+              onClick={handlePickFile}
+              className="text-gray-500 cursor-pointer hover:text-gray-700"
+              size={18}
+            />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              hidden
+              onChange={handleFilesSelected}
+            />
+
+            <input
+              className="flex-1 bg-transparent outline-none px-3 py-2 text-gray-800 placeholder-gray-500"
+              placeholder="Nhập tin nhắn..."
+              value={content}
+              onChange={(e) => handleContentChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+
+            {canSend ? (
+              <button
+                onClick={handleSend}
+                disabled={isUploading}
+                className="text-[#00a884] hover:text-[#008f75] disabled:opacity-50 transition-colors"
+              >
+                <svg viewBox="0 0 24 24" height="24" width="24" fill="currentColor">
+                  <path d="M1.101,21.757L23.8,12.028L1.101,2.3l0.011,7.912l13.623,1.816L1.112,13.845 L1.101,21.757z"></path>
+                </svg>
+              </button>
+            ) : (
+              <BsMicFill className="text-gray-500 cursor-pointer hover:text-gray-700" size={20} />
+            )}
+          </div>
+
+          {/* Ngay dưới phần input trong ChatBox */}
+          {pendingAttachments.length > 0 && (
+            <div
+              className="grid w-full gap-2 justify-items-start"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(96px, 110px))" }}
+            >
+              {pendingAttachments.map((file) => {
+                const meta = pickFileMeta(file.mimeType, file.fileName);
+
+                return (
+                  <div
+                    key={file.id}
+                    className="relative w-[96px] sm:w-[110px] rounded-xl bg-gray-100/80 p-2 flex flex-col"
+                  >
+                    {file.mimeType?.startsWith("image/") && file.url ? (
+                      <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                        <img src={file.url} alt={file.fileName} className="h-full w-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2 py-2 text-center">
+                        <span className={`flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow ${meta.accent}`}>
+                          <meta.Icon size={22} />
+                        </span>
+                        <p className="text-[11px] text-gray-700 line-clamp-2 w-full px-1 break-words">
+                          {file.fileName}
+                        </p>
+                      </div>
+                    )}
+
+                    {(file.status === "uploading" || file.status === "error") && (
+                      <div
+                        className={`absolute inset-0 flex flex-col items-center justify-center text-white px-2 rounded-xl ${file.status === "uploading" ? "bg-black/60" : "bg-red-600/70"
+                          }`}
+                      >
+                        {file.status === "uploading" ? (
+                          <>
+                            <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-[#00a884]"
+                                style={{ width: `${file.progress}%` }}
+                              />
+                            </div>
+                            <span className="mt-1 text-xs">{file.progress}%</span>
+                          </>
+                        ) : (
+                          <span className="text-xs font-semibold">Lỗi tải</span>
+                        )}
+                      </div>
+                    )}
+
+                    {file.status !== "uploading" && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(file.id)}
+                        className="absolute -top-2 -right-2 z-10 h-5 w-5 rounded-full bg-black/80 text-white text-xs flex items-center justify-center hover:bg-black"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {showEmojiPicker && (
+            <div
+              ref={emojiPickerRef}
+              className="absolute bottom-[110%] left-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-2xl p-3 w-[320px] max-w-full"
+            >
+              <p className="text-xs font-semibold text-gray-500 mb-2">Gửi nhanh</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {QUICK_REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => handleSendReaction(emoji)}
+                    className="text-2xl hover:scale-110 transition-transform"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
+              <EmojiPicker
+                width="100%"
+                height={320}
+                searchDisabled
+                skinTonesDisabled
+                previewConfig={{ showPreview: false }}
+                onEmojiClick={handleEmojiClick}
+              />
+            </div>
+          )}
+          <div
+            className={`
+        pointer-events-none absolute left-10 -top-2
+        px-2 py-0.5 rounded-full bg-white shadow
+        text-xs text-[#00a884]
+        transition-all duration-150
+        ${typingLabel ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"}
+      `}
+          >
+            {typingLabel || "\u00A0"}
+          </div>
+        </div>
+      </div>
+      {/* ---------- Image Lightbox ---------- */}
+      {galleryState.open && currentImage && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-black/80"
+          onClick={closeGallery}
+        >
+          <div className="flex justify-end p-4">
+            <button
+              className="text-white text-3xl hover:text-gray-200 focus-visible:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeGallery();
+              }}
+            >
+              <IoClose />
+            </button>
+          </div>
+
+          <div className="relative flex-1 flex items-center justify-center px-6">
+            {imageAttachments.length > 1 && (
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white hover:bg-black/80"
+                onClick={showPrevImage}
+              >
+                <FiChevronLeft size={24} />
+              </button>
+            )}
+
+            <img
+              src={currentImage.url}
+              alt={currentImage.fileName}
+              className="max-h-[80vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {imageAttachments.length > 1 && (
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white hover:bg-black/80"
+                onClick={showNextImage}
+              >
+                <FiChevronRight size={24} />
+              </button>
+            )}
+          </div>
+
+          <div
+            className="px-6 py-4 bg-black/50 text-white flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <p className="font-semibold">{currentImage.fileName}</p>
+              <p className="text-xs text-gray-300">
+                {currentImage.senderName} ·{" "}
+                {currentImage.timeStamp
+                  ? new Date(currentImage.timeStamp).toLocaleString("vi-VN")
+                  : ""}
+              </p>
+            </div>
+            <div
+              className="flex flex-wrap gap-2 text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await downloadFile(currentImage.url, currentImage.fileName || "image");
+                }}
+                title="Tải ảnh này"
+                aria-label="Tải ảnh này"
+                className="rounded-full bg-white/15 p-2 hover:bg-white/25"
+              >
+                <BsDownload size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await downloadAllFromMessage(currentImage.messageId);
+                }}
+                title="Tải tất cả ảnh trong tin"
+                aria-label="Tải tất cả ảnh trong tin"
+                className="rounded-full bg-[#00a884]/80 p-2 hover:bg-[#00a884]"
+              >
+                <p>Tải tất cả</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ChatBox;
