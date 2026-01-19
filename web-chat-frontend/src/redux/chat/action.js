@@ -1,4 +1,6 @@
 import { authFetch } from "../../utils/authFetch";
+import { parseApiResponse } from "../../utils/apiResponse";
+import { logger } from "../../utils/logger";
 import {
   CREATE_CHAT,
   CREATE_GROUP,
@@ -19,11 +21,11 @@ export const createChat = ({ data }) => async (dispatch) => {
       body: JSON.stringify(data),
     });
 
-    const response = await res.json();
-    dispatch({ type: CREATE_CHAT, payload: response.result || response });
-    return response.result || response;
+    const result = await parseApiResponse(res);
+    dispatch({ type: CREATE_CHAT, payload: result });
+    return result;
   } catch (error) {
-    console.error("createChat error", error);
+    logger.error("createChat", error, { userId: data?.userId });
     throw error;
   }
 };
@@ -35,11 +37,11 @@ export const createGroupChat = ({ group }) => async (dispatch) => {
       body: JSON.stringify(group),
     });
 
-    const response = await res.json();
-    dispatch({ type: CREATE_GROUP, payload: response.result || response });
-    return { success: true, result: response.result || response };
+    const result = await parseApiResponse(res);
+    dispatch({ type: CREATE_GROUP, payload: result });
+    return { success: true, result };
   } catch (error) {
-    console.error("createGroup error", error);
+    logger.error("createGroup", error, { groupName: group?.name });
     return { success: false, error };
   }
 };
@@ -49,16 +51,16 @@ export const getUsersChat = ({ keyword } = {}) => async (dispatch) => {
     const query = buildKeywordQuery(keyword);
     const res = await authFetch(`/chats/my-chats${query}`, { method: "GET" });
 
-    const response = await res.json();
+    const result = await parseApiResponse(res, { allowEmptyResult: true });
     dispatch({
       type: GET_USERS_CHAT,
       payload: {
-        data: response.result || response,
+        data: result || [],
         keyword: keyword?.trim() || "",
       },
     });
   } catch (error) {
-    console.error("getUsersChat error", error);
+    logger.error("getUsersChat", error, { keyword });
   }
 };
 
@@ -68,14 +70,13 @@ export const addUserToGroup = ({ chatId, userId }) => async (dispatch) => {
       method: "POST",
     });
 
-    const response = await res.json();
-    if (!res.ok) throw new Error(response.message || "Add member failed");
-
-    const updatedChat = response.result || response;
+    const updatedChat = await parseApiResponse(res, {
+      defaultErrorMessage: "Add member failed",
+    });
     dispatch({ type: UPDATE_CHAT, payload: updatedChat });
     return updatedChat;
   } catch (error) {
-    console.error("addUserToGroup error:", error);
+    logger.error("addUserToGroup", error, { chatId, userId });
     throw error;
   }
 };
@@ -87,14 +88,13 @@ export const updateChat = ({ chatId, data }) => async (dispatch) => {
       body: JSON.stringify(data),
     });
 
-    const response = await res.json();
-    if (!res.ok) throw new Error(response.message || "Update chat failed");
-
-    const updatedChat = response.result || response;
+    const updatedChat = await parseApiResponse(res, {
+      defaultErrorMessage: "Update chat failed",
+    });
     dispatch({ type: UPDATE_CHAT, payload: updatedChat });
     return updatedChat;
   } catch (error) {
-    console.error("updateChat error:", error);
+    logger.error("updateChat", error, { chatId });
     throw error;
   }
 };
@@ -105,14 +105,13 @@ export const removeFromGroup = ({ chatId, targetUserId }) => async (dispatch) =>
       method: "DELETE",
     });
 
-    const response = await res.json();
-    if (!res.ok) throw new Error(response.message || "Remove member failed");
-
-    const updatedChat = response.result || response;
+    const updatedChat = await parseApiResponse(res, {
+      defaultErrorMessage: "Remove member failed",
+    });
     dispatch({ type: UPDATE_CHAT, payload: updatedChat });
     return updatedChat;
   } catch (error) {
-    console.error("removeFromGroup error:", error);
+    logger.error("removeFromGroup", error, { chatId, targetUserId });
     throw error;
   }
 };
@@ -120,15 +119,14 @@ export const removeFromGroup = ({ chatId, targetUserId }) => async (dispatch) =>
 export const deleteChat = ({ chatId }) => async (dispatch) => {
   try {
     const res = await authFetch(`/chats/${chatId}`, { method: "DELETE" });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Delete chat failed");
-    }
+    await parseApiResponse(res, {
+      defaultErrorMessage: "Delete chat failed",
+    });
 
     dispatch({ type: REMOVE_CHAT, payload: chatId });
     return true;
   } catch (error) {
-    console.error("deleteChat error:", error);
+    logger.error("deleteChat", error, { chatId });
     throw error;
   }
 };

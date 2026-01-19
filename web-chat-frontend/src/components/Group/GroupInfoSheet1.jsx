@@ -7,10 +7,10 @@ import {
 import { BsPencil, BsTrash, BsCamera } from "react-icons/bs";
 import { BiSearch } from "react-icons/bi";
 
-const fallbackGroupImg =
-  "https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?auto=format&fit=crop&w=200&q=80";
-const fallbackAvatar =
-  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png";
+import { DEFAULT_AVATAR, DEFAULT_GROUP_IMAGE } from "../../constants/defaults";
+
+const fallbackGroupImg = DEFAULT_GROUP_IMAGE;
+const fallbackAvatar = DEFAULT_AVATAR;
 
 const GroupInfoSheet = ({
   open,

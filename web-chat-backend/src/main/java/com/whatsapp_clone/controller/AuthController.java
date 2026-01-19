@@ -87,14 +87,27 @@ public class AuthController {
 
     // 🔹 Refresh token
     @PostMapping("/refresh")
-    public ApiResponse<AuthenticationResponse> refresh(
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(
             @CookieValue("refresh_token") String refreshToken) throws Exception {
         RefreshRequest request = new RefreshRequest();
         request.setRefreshToken(refreshToken);
         AuthenticationResponse newToken = authService.refreshToken(request);
-        return ApiResponse.<AuthenticationResponse>builder()
-                .message("Token refreshed successfully!")
-                .result(newToken)
+
+        // Set refresh token mới vào HTTP cookie (giống như login)
+        boolean isHttps = false; // dev
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", newToken.getRefreshToken())
+                .httpOnly(true)
+                .secure(isHttps)          // false ở dev
+                .sameSite(isHttps ? "None" : "Lax")
+                .path("/")
+                .maxAge(Duration.ofSeconds(REFRESH_DURATION))
                 .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.<AuthenticationResponse>builder()
+                        .message("Token refreshed successfully!")
+                        .result(newToken)
+                        .build());
     }
 }

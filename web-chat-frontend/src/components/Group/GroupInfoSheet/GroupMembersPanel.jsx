@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AiOutlinePlus, AiOutlineUserAdd, AiOutlineSearch, AiOutlineArrowLeft } from "react-icons/ai";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { IconButton, Menu, MenuItem } from "@mui/material";
+import { DEFAULT_AVATAR } from "../../../constants/defaults";
 
-const fallbackAvatar =
-  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png";
+const fallbackAvatar = DEFAULT_AVATAR;
 
 const GroupMembersPanel = ({
   chat,

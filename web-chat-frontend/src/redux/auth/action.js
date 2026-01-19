@@ -9,6 +9,8 @@ import {
 } from "./actionType";
 import { setAccessToken, clearAccessToken, getAccessToken } from "../../utils/tokenManager";
 import { authFetch } from "../../utils/authFetch";
+import { parseApiResponse, parseJsonIfPossible } from "../../utils/apiResponse";
+import { logger } from "../../utils/logger";
 
 export const register = (data) => async (dispatch) => {
   try {
@@ -18,18 +20,18 @@ export const register = (data) => async (dispatch) => {
       body: JSON.stringify(data),
     });
 
-    const response = await res.json();
-    if (!res.ok || response.code !== 0) {
-      return dispatch({
+    try {
+      const result = await parseApiResponse(res, { defaultErrorMessage: "Đăng ký thất bại" });
+      dispatch({
         type: REGISTER,
-        payload: { error: response.message || "Đăng ký thất bại" },
+        payload: { success: true, data: result },
+      });
+    } catch (error) {
+      dispatch({
+        type: REGISTER,
+        payload: { error: error.message || "Đăng ký thất bại" },
       });
     }
-
-    dispatch({
-      type: REGISTER,
-      payload: { success: true, data: response.result },
-    });
   } catch (error) {
     dispatch({
       type: REGISTER,
@@ -47,29 +49,20 @@ export const login = (data) => async (dispatch) => {
       credentials: "include",
     });
 
-    const response = await res.json();
-    if (!res.ok || response.code !== 0) {
+    try {
+      const result = await parseApiResponse(res);
+      const accessToken = result?.accessToken;
+      setAccessToken(accessToken);
+
+      dispatch({ type: LOGIN, payload: { success: true, data: result } });
+      dispatch(currentUser());
+    } catch (error) {
       clearAccessToken();
-      return dispatch({ type: LOGIN, payload: { error: response.message } });
+      dispatch({ type: LOGIN, payload: { error: error.message || "Đăng nhập thất bại" } });
     }
-
-    const accessToken = response?.result?.accessToken;
-    setAccessToken(accessToken);
-
-    dispatch({ type: LOGIN, payload: { success: true, data: response.result } });
-    dispatch(currentUser());
   } catch (error) {
     dispatch({ type: LOGIN, payload: { error: "Server error" } });
   }
-};
-
-const parseJsonIfPossible = async (res) => {
-  const contentType = res.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    return res.json();
-  }
-  const text = await res.text();
-  return text ? { message: text } : null;
 };
 
 export const currentUser = () => async (dispatch) => {
@@ -87,15 +80,24 @@ export const currentUser = () => async (dispatch) => {
       return null;
     }
 
-    const payload = await parseJsonIfPossible(res);
-    if (!res.ok || payload?.code !== 0) {
-      throw new Error(payload?.message || "Không lấy được thông tin user");
+    try {
+      const result = await parseApiResponse(res, {
+        defaultErrorMessage: "Không lấy được thông tin user",
+        allowEmptyResult: true,
+      });
+      dispatch({ type: REQ_USER, payload: result });
+      return result;
+    } catch (error) {
+      // If parseApiResponse throws, try parseJsonIfPossible for backward compatibility
+      const payload = await parseJsonIfPossible(res);
+      if (!res.ok || payload?.code !== 0) {
+        throw new Error(payload?.message || "Không lấy được thông tin user");
+      }
+      dispatch({ type: REQ_USER, payload: payload.result });
+      return payload.result;
     }
-
-    dispatch({ type: REQ_USER, payload: payload.result });
-    return payload.result;
   } catch (error) {
-    console.error("currentUser error", error);
+    logger.error("currentUser", error);
     return null;
   }
 };
@@ -106,10 +108,11 @@ export const searchUser = ({ keyword }) => async (dispatch) => {
       `/users/search?name=${encodeURIComponent(keyword || "")}`,
       { method: "GET" }
     );
-    const response = await res.json();
-    dispatch({ type: SEARCH_USER, payload: response.result || [] });
+    const result = await parseApiResponse(res, { allowEmptyResult: true });
+    dispatch({ type: SEARCH_USER, payload: result || [] });
   } catch (error) {
-    console.error("searchUser error", error);
+    logger.error("searchUser", error, { keyword });
+    dispatch({ type: SEARCH_USER, payload: [] });
   }
 };
 
@@ -120,18 +123,15 @@ export const updateUser = ({ id, data }) => async (dispatch) => {
       body: JSON.stringify(data),
     });
 
-    const response = await res.json();
-    if (!res.ok || response.code !== 0) {
-      throw new Error(response.message || "Cập nhật thất bại");
-    }
-
-    const updatedUser = response.result;
+    const updatedUser = await parseApiResponse(res, {
+      defaultErrorMessage: "Cập nhật thất bại",
+    });
     dispatch({ type: UPDATE_USER, payload: updatedUser });
     dispatch({ type: REQ_USER, payload: updatedUser });
 
     return updatedUser;
   } catch (error) {
-    console.error("updateUser error", error);
+    logger.error("updateUser", error, { userId: id });
     throw error;
   }
 };
@@ -155,7 +155,7 @@ export const logout = () => async (dispatch) => {
       body: JSON.stringify({ accessToken }),
     });
   } catch (err) {
-    console.warn("logout request failed", err);
+    logger.warn("logout", "Logout request failed", { error: err });
   }
 
   clearAccessToken();
@@ -172,15 +172,15 @@ export const bootstrapSession = () => async (dispatch) => {
       method: "POST",
       credentials: "include",
     });
-    if (!res.ok) throw new Error("Refresh failed");
 
-    const payload = await res.json();
-    if (payload.code !== 0) throw new Error(payload.message);
+    const result = await parseApiResponse(res, {
+      defaultErrorMessage: "Refresh failed",
+    });
 
-    setAccessToken(payload.result.accessToken);
+    setAccessToken(result.accessToken);
     await dispatch(currentUser());
   } catch (error) {
-    console.warn("bootstrapSession error:", error);
+    logger.warn("bootstrapSession", "Bootstrap session failed", { error });
     clearAccessToken();
     dispatch({ type: REQ_USER, payload: null });
   } finally {

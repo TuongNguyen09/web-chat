@@ -4,6 +4,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "../../redux/auth/action";
 import { CircularProgress } from "@mui/material";
 import toast from "react-hot-toast";
+import { DEFAULT_AVATAR } from "../../constants/defaults";
+import { logger } from "../../utils/logger";
+import { ENV_CONFIG } from "../../config/env";
+import { uploadImageToCloudinary } from "../../utils/cloudinaryUploader";
 
 const Profile = ({ onClose }) => {
   const [isEditingName, setIsEditingName] = useState(false);
@@ -52,21 +56,9 @@ const Profile = ({ onClose }) => {
     if (!file) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "whatsapp");
-    formData.append("whatsapp_folder", "avatars");
 
     try {
-      const res = await fetch(
-        "https://api.cloudinary.com/v1_1/dj923dmx3/image/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      const resData = await res.json();
-      if (!res.ok) throw new Error("Upload failed");
+      const resData = await uploadImageToCloudinary(file, { folder: "avatars" });
 
       await dispatch(
         updateUser({
@@ -77,7 +69,7 @@ const Profile = ({ onClose }) => {
 
       toast.success("Cập nhật ảnh đại diện thành công");
     } catch (err) {
-      console.error("Error uploading:", err);
+      logger.error("Profile.uploadAvatar", err);
       toast.error("Tải ảnh lên thất bại");
     } finally {
       setIsUploading(false);
@@ -113,10 +105,7 @@ const Profile = ({ onClose }) => {
               ) : (
                 <img
                   className="w-full h-full object-cover"
-                  src={
-                    auth.reqUser?.profilePicture ||
-                    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png"
-                  }
+                  src={auth.reqUser?.profilePicture || DEFAULT_AVATAR}
                   alt="profile"
                 />
               )}

@@ -4,6 +4,8 @@ import GroupInfoMain from "./GroupInfoMain";
 import GroupMembersPanel from "./GroupMembersPanel";
 import toast from "react-hot-toast";
 import { updateChat } from "../../../redux/chat/action";
+import { logger } from "../../../utils/logger";
+import { uploadImageToCloudinary } from "../../../utils/cloudinaryUploader";
 
 const GroupInfoSheet = (props) => {
   const { open, chat } = props;
@@ -25,20 +27,7 @@ const GroupInfoSheet = (props) => {
     try {
       setIsUploadingAvatar(true);
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "whatsapp");
-      formData.append("folder", "group_avatars");
-
-      const res = await fetch(
-        "https://api.cloudinary.com/v1_1/dj923dmx3/image/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error("Upload failed");
+      const data = await uploadImageToCloudinary(file, { folder: "group_avatars" });
 
       await dispatch(
         updateChat({
@@ -49,7 +38,7 @@ const GroupInfoSheet = (props) => {
 
       toast.success("Cập nhật ảnh nhóm thành công");
     } catch (err) {
-      console.error("Error updating group avatar:", err);
+      logger.error("GroupInfoSheet.updateAvatar", err, { chatId: chat?.id });
       toast.error("Cập nhật ảnh nhóm thất bại");
     } finally {
       setIsUploadingAvatar(false);

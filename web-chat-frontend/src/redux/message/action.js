@@ -1,4 +1,6 @@
 import { authFetch } from "../../utils/authFetch";
+import { parseApiResponse } from "../../utils/apiResponse";
+import { logger } from "../../utils/logger";
 import {
   CREATE_NEW_MESSAGE,
   GET_ALL_MESSAGE,
@@ -12,10 +14,10 @@ export const createMessage = ({ data }) => async (dispatch) => {
       body: JSON.stringify(data),
     });
 
-    const response = await res.json();
-    dispatch({ type: CREATE_NEW_MESSAGE, payload: response.result || response });
+    const result = await parseApiResponse(res);
+    dispatch({ type: CREATE_NEW_MESSAGE, payload: result });
   } catch (error) {
-    console.error("createMessage error:", error);
+    logger.error("createMessage", error, { chatId: data?.chatId });
   }
 };
 
@@ -32,18 +34,17 @@ export const getAllMessages = ({
       { method: "GET" }
     );
 
-    const response = await res.json();
-    const result = response.result || response;
+    const result = await parseApiResponse(res, { allowEmptyResult: true });
 
     dispatch({
       type: GET_ALL_MESSAGE,
       payload: {
         chatId,
-        data: result.data || [],
-        currentPage: result.currentPage,
-        totalPages: result.totalPages,
-        pageSize: result.pageSize,
-        totalElements: result.totalElements,
+        data: result?.data || [],
+        currentPage: result?.currentPage,
+        totalPages: result?.totalPages,
+        pageSize: result?.pageSize,
+        totalElements: result?.totalElements,
         merge,
         reset,
       },
@@ -51,7 +52,7 @@ export const getAllMessages = ({
 
     return result;
   } catch (error) {
-    console.error("getAllMessages error", error);
+    logger.error("getAllMessages", error, { chatId, page, size });
     throw error;
   }
 };
@@ -59,16 +60,27 @@ export const getAllMessages = ({
 export const deleteMessage = ({ messageId }) => async (dispatch) => {
   try {
     const res = await authFetch(`/messages/${messageId}`, { method: "DELETE" });
-    const data = await res.json();
-
-    if (!res.ok || data.code !== 0) {
-      throw new Error(data?.message || "You cannot delete this message !");
+    
+    // For delete, we might get a message in the response
+    let result;
+    try {
+      result = await parseApiResponse(res, {
+        defaultErrorMessage: "You cannot delete this message !",
+      });
+    } catch (error) {
+      // If parseApiResponse fails, try to get message from response
+      const data = await res.json();
+      if (data?.message) {
+        dispatch({ type: DELETE_MESSAGE, payload: messageId });
+        return data.message;
+      }
+      throw error;
     }
 
     dispatch({ type: DELETE_MESSAGE, payload: messageId });
-    return data.message || "Message deleted successfully";
+    return result?.message || "Message deleted successfully";
   } catch (error) {
-    console.error("deleteMessage error:", error);
+    logger.error("deleteMessage", error, { messageId });
     throw error;
   }
 };

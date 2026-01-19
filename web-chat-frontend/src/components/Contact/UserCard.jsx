@@ -1,8 +1,8 @@
 // src/components/Contact/UserCard.jsx
 import React from "react";
+import { DEFAULT_AVATAR } from "../../constants/defaults";
 
-const fallbackAvatar =
-  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png";
+const fallbackAvatar = DEFAULT_AVATAR;
 
 const UserCard = ({ user, onSelect }) => {
   const { fullName, phone, email, profile_picture, profilePicture } = user || {};

@@ -4,6 +4,9 @@ import { useDispatch } from "react-redux";
 import { createGroupChat } from "../../redux/chat/action";
 import toast from "react-hot-toast";
 import { CircularProgress, Avatar } from "@mui/material";
+import { DEFAULT_AVATAR } from "../../constants/defaults";
+import { logger } from "../../utils/logger";
+import { uploadImageToCloudinary } from "../../utils/cloudinaryUploader";
 
 const NewGroup = ({ groupMember, setIsGroup, setNewGroup, onBack }) => {
   const [isImageUploading, setIsImageUploading] = useState(false);
@@ -47,27 +50,21 @@ const NewGroup = ({ groupMember, setIsGroup, setNewGroup, onBack }) => {
     }
   };
 
-  const uploadToCloudinary = (file) => {
-    setIsImageUploading(true);
-    const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "whatsapp");
-    data.append("cloud_name", "dcpesbd8q");
+  const uploadToCloudinary = async (file) => {
+    if (!file) return;
 
-    fetch("https://api.cloudinary.com/v1_1/dcpesbd8q/image/upload", {
-      method: "POST",
-      body: data,
-    })
-      .then((res) => res.json())
-      .then((uploaded) => {
-        setGroupImage(uploaded.url?.toString() || null);
-        toast.success("Đã tải ảnh lên thành công");
-      })
-      .catch((err) => {
-        toast.error("Tải ảnh lên thất bại");
-        console.error("Upload error:", err);
-      })
-      .finally(() => setIsImageUploading(false));
+    setIsImageUploading(true);
+
+    try {
+      const uploaded = await uploadImageToCloudinary(file, { folder: "group_avatars" });
+      setGroupImage(uploaded.secure_url);
+      toast.success("Đã tải ảnh lên thành công");
+    } catch (err) {
+      toast.error("Tải ảnh lên thất bại");
+      logger.error("NewGroup.uploadToCloudinary", err);
+    } finally {
+      setIsImageUploading(false);
+    }
   };
 
   return (
@@ -152,10 +149,7 @@ const NewGroup = ({ groupMember, setIsGroup, setNewGroup, onBack }) => {
                 >
                   <img
                     className="h-10 w-10 rounded-full object-cover"
-                    src={
-                      member.profilePicture ||
-                      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png"
-                    }
+                    src={member.profilePicture || DEFAULT_AVATAR}
                     alt={member.fullName}
                   />
                   <div className="flex-1 min-w-0">

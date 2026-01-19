@@ -5,6 +5,7 @@ import { AiOutlineSearch } from "react-icons/ai";
 import { BsFilter, BsThreeDotsVertical } from "react-icons/bs";
 import { Menu, MenuItem } from "@mui/material";
 import ChatCard from "../ChatCard";
+import { isGroupChat, getChatTitle, getChatAvatar, getChatPartner } from "../../utils/chatUtils";
 
 const SidePanel = ({
   auth,
@@ -40,22 +41,17 @@ const SidePanel = ({
     }
 
     return chats.map((chat) => {
-      const isGroup = Boolean(chat.group ?? chat.isGroup);
-      const members = chat.members || [];
-
-      const otherUser = !isGroup
-        ? members.find((u) => u.id !== currentUserId)
-        : null;
+      const isGroup = isGroupChat(chat);
+      const otherUser = !isGroup ? getChatPartner(chat, currentUserId) : null;
 
       const meta = buildMatchMeta(chat, serverKeyword, currentUserId);
 
-      const avatar = isGroup
-        ? chat.chatImage || defaultGroupImage
-        : otherUser?.profilePicture || defaultAvatar;
+      const avatar = getChatAvatar(chat, currentUserId, {
+        avatar: defaultAvatar,
+        groupImage: defaultGroupImage,
+      });
 
-      const title = isGroup
-        ? chat.chatName || "Group Chat"
-        : otherUser?.fullName || "Unknown User";
+      const title = getChatTitle(chat, currentUserId);
 
       const unreadCount = unreadByChat[chat.id] || 0;
 

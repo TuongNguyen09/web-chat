@@ -6,6 +6,9 @@ import {
 import { Menu, MenuItem } from "@mui/material";
 import toast from "react-hot-toast";
 import { pickFileMeta } from "../../utils/fileMeta";
+import { formatTime } from "../../utils/dateUtils";
+import { logger } from "../../utils/logger";
+import { downloadFile } from "../../utils/fileDownloader";
 
 
 const formatBytes = (bytes) => {
@@ -73,31 +76,7 @@ const renderTextWithLinks = (text) => {
   return nodes;
 };
 
-const downloadFile = async (url, filename = "attachment") => {
-  try {
-    const response = await fetch(url, { credentials: "omit" });
-    if (!response.ok) {
-      const errBody = await response.text();
-      console.error("Download failed", response.status, errBody);
-      throw new Error(`Download failed: ${response.status}`);
-    }
-
-    const blob = await response.blob();
-    const tempUrl = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = tempUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-
-    a.remove();
-    URL.revokeObjectURL(tempUrl);
-  } catch (err) {
-    toast.error("Không tải được file");
-    console.error(err);
-  }
-};
+// Use centralized downloadFile utility instead of local implementation
 
 const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
   const { id, content, attachments, type, timeStamp } = message;
@@ -112,12 +91,7 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const open = Boolean(anchorEl);
 
-  const formattedTime = timeStamp
-    ? new Date(timeStamp).toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    : "";
+  const formattedTime = formatTime(timeStamp);
 
   const renderImageGrid = (images) => {
     if (!images.length) return null;

@@ -1,3 +1,6 @@
+// ============================================================================
+// IMPORTS
+// ============================================================================
 import React, {
     useState,
     useEffect,
@@ -8,7 +11,11 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
+import SockJS from "sockjs-client/dist/sockjs";
+import { over } from "stompjs";
 
+// Redux Actions
 import {
     logout,
     currentUser,
@@ -43,28 +50,36 @@ import {
     receivePresencePush,
 } from "../../redux/presence/action";
 
+// Config
+import { ENV_CONFIG } from "../../config/env";
+
+// Components
 import SidePanel from "../../components/HomeLayout/SidePanel";
 import ChatBox from "../../components/HomeLayout/ChatBox";
 import EmptyChatState from "../../components/HomeLayout/EmptyChatState";
-import toast from "react-hot-toast";
 import Profile from "../../components/Profile";
 import CreateGroup from "../../components/Group/CreateGroup";
 import GroupInfoSheet from "../../components/Group/GroupInfoSheet";
 import NewContact from "../../components/Contact/NewContact";
-import "./HomePage.css";
-import SockJS from "sockjs-client/dist/sockjs";
-import { over } from "stompjs";
-import { MessageType } from "../../constants/messageType";
-import { getAccessToken, subscribeAccessToken } from "../../utils/tokenManager";
 
-/* ---------- Constants & helpers ---------- */
+// Utils & Constants
+import { MessageType } from "../../constants/messageType";
+import { DEFAULT_AVATAR, DEFAULT_GROUP_IMAGE } from "../../constants/defaults";
+import { getAccessToken, subscribeAccessToken } from "../../utils/tokenManager";
+import { formatDate } from "../../utils/dateUtils";
+import { isGroupChat as checkIsGroupChat } from "../../utils/chatUtils";
+import { logger } from "../../utils/logger";
+import "./HomePage.css";
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 const PAGE_SIZE = 20;
 const MIN_FETCH_DURATION = 1000;
-const DEFAULT_AVATAR =
-    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png";
-const DEFAULT_GROUP_IMAGE =
-    "https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?auto=format&fit=crop&w=200&q=80";
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getCookie = (name) => {
@@ -74,7 +89,6 @@ const getCookie = (name) => {
     return parts.pop().split(";").shift();
 };
 
-const isGroupChat = (chatEntity) => Boolean(chatEntity?.group);
 const normalize = (text) => text?.toLowerCase() ?? "";
 const truncate = (text, max = 70) =>
     text?.length > max ? `${text.slice(0, max)}…` : text || "";
@@ -221,21 +235,23 @@ const buildMatchMeta = (chat, keyword, currentUserId) => {
         normalize(u.fullName).includes(normalizedKeyword)
     );
 
-    if ((chat.isGroup || chat.group) && memberHit) {
+    if (checkIsGroupChat(chat) && memberHit) {
         return { ...base, subtitle: `${memberHit.fullName} is in this group` };
     }
 
-    if (!chat.isGroup && !chat.group && memberHit) {
+    if (!checkIsGroupChat(chat) && memberHit) {
         return { ...base, nameNode: highlightText(memberHit.fullName, keyword.trim()) };
     }
 
     return base;
 };
 
-const formatDateLabel = (isoString) =>
-    new Date(isoString).toLocaleDateString("vi-VN");
+// formatDateLabel is now imported from dateUtils
+const formatDateLabel = formatDate;
 
-/* Hook đồng bộ access token từ tokenManager */
+// ============================================================================
+// CUSTOM HOOKS
+// ============================================================================
 const useAccessToken = () => {
     const [token, setToken] = useState(() => getAccessToken());
 
@@ -247,42 +263,54 @@ const useAccessToken = () => {
     return token;
 };
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 const HomePage = () => {
+    // ========================================================================
+    // HOOKS & SELECTORS
+    // ========================================================================
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { auth, chat, message } = useSelector((store) => store);
     const unreadByChat = useSelector((store) => store.unread.byChatId);
     const typingByChat = useSelector((store) => store.typing.byChatId);
     const presenceByUserId = useSelector((store) => store.presence.byUserId || {});
-
-    const unreadRef = useRef(unreadByChat);
-    useEffect(() => {
-        unreadRef.current = unreadByChat;
-    }, [unreadByChat]);
-
-    const typingSubscriptionsRef = useRef({});
-    const prevChatIdRef = useRef(null);
+    const sessionHydrated = useSelector((state) => state.auth.sessionHydrated);
 
     const accessToken = useAccessToken();
     const isAuthenticated = Boolean(accessToken && auth.reqUser?.id);
+    const currentUserId = auth.reqUser?.id;
+    const serverKeyword = chat.chatsKeyword || "";
+    const pagination = message.pagination;
 
-    const [chatKeyword, setChatKeyword] = useState("");
-    const [content, setContent] = useState("");
+    // ========================================================================
+    // STATE DECLARATIONS
+    // ========================================================================
+    // UI State
     const [activeSidePanel, setActiveSidePanel] = useState(null);
-    const [currentChat, setCurrentChat] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
-    const [pendingMessageFocus, setPendingMessageFocus] = useState(null);
-    const [isLoadingOlder, setIsLoadingOlder] = useState(false);
     const [leftMenuAnchor, setLeftMenuAnchor] = useState(null);
     const [rightMenuAnchor, setRightMenuAnchor] = useState(null);
+    const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
+
+    // Chat State
+    const [currentChat, setCurrentChat] = useState(null);
+    const [chatKeyword, setChatKeyword] = useState("");
+
+    // Message State
+    const [messages, setMessages] = useState([]);
+    const [content, setContent] = useState("");
+    const [pendingMessageFocus, setPendingMessageFocus] = useState(null);
+    const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+
+    // WebSocket State
     const [stompClient, setStompClient] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
 
-    const serverKeyword = chat.chatsKeyword || "";
-    const pagination = message.pagination;
-    const currentUserId = auth.reqUser?.id;
-
+    // ========================================================================
+    // REFS DECLARATIONS
+    // ========================================================================
+    // Message Refs
     const messageContainerRef = useRef(null);
     const keepAtBottomRef = useRef(true);
     const isPrependingRef = useRef(false);
@@ -291,6 +319,19 @@ const HomePage = () => {
     const isFetchingOlderRef = useRef(false);
     const messagesChatIdRef = useRef(null);
 
+    // WebSocket Refs
+    const stompRef = useRef(null);
+    const retryTimeoutRef = useRef(null);
+    const groupSubscriptionsRef = useRef({});
+    const typingSubscriptionsRef = useRef({});
+
+    // Other Refs
+    const unreadRef = useRef(unreadByChat);
+    const prevChatIdRef = useRef(null);
+
+    // ========================================================================
+    // COMPUTED VALUES
+    // ========================================================================
     const safeChats = useMemo(
         () => (Array.isArray(chat.chats) ? chat.chats : []),
         [chat.chats]
@@ -299,18 +340,32 @@ const HomePage = () => {
     const privateContacts = useMemo(() => {
         if (!currentUserId) return [];
         return safeChats
-            .filter((c) => !isGroupChat(c))
+            .filter((c) => !checkIsGroupChat(c))
             .map((c) => c.users?.find((u) => u.id !== currentUserId))
             .filter(Boolean);
     }, [safeChats, currentUserId]);
 
-    /* Side panel helpers */
+    const isCurrentUserAdmin = useMemo(() => {
+        if (!checkIsGroupChat(currentChat) || !currentUserId) return false;
+        return (
+            currentChat?.createdBy?.id === currentUserId ||
+            currentChat?.admins?.some((admin) => admin.id === currentUserId)
+        );
+    }, [currentChat, currentUserId]);
+
+    const isCurrentUserCreator = useMemo(() => {
+        if (!checkIsGroupChat(currentChat) || !currentUserId) return false;
+        return currentChat?.createdBy?.id === currentUserId;
+    }, [currentChat, currentUserId]);
+
+    // ========================================================================
+    // UI HELPERS
+    // ========================================================================
     const openProfile = () => setActiveSidePanel("profile");
     const openContact = () => setActiveSidePanel("contact");
     const openGroup = () => setActiveSidePanel("group");
     const closeSidePanel = () => setActiveSidePanel(null);
 
-    /* Menu helpers */
     const openLeft = Boolean(leftMenuAnchor);
     const openRight = Boolean(rightMenuAnchor);
     const handleLeftClick = (e) => setLeftMenuAnchor(e.currentTarget);
@@ -318,8 +373,12 @@ const HomePage = () => {
     const handleRightClick = (e) => setRightMenuAnchor(e.currentTarget);
     const handleRightClose = () => setRightMenuAnchor(null);
 
-    /* Nếu không có token -> đá về /auth */
-    const sessionHydrated = useSelector((state) => state.auth.sessionHydrated);
+    // ========================================================================
+    // AUTHENTICATION & SESSION MANAGEMENT
+    // ========================================================================
+    useEffect(() => {
+        unreadRef.current = unreadByChat;
+    }, [unreadByChat]);
 
     useEffect(() => {
         if (!sessionHydrated) return;
@@ -328,21 +387,12 @@ const HomePage = () => {
         }
     }, [sessionHydrated, accessToken, navigate]);
 
-    // useEffect(() => {
-    //     if (!accessToken) {
-    //         dispatch(logout());
-    //         navigate("/auth");
-    //     }
-    // }, [accessToken, dispatch, navigate]);
-
-    /* Nếu đã có token mà Redux chưa có user -> fetch lại */
     useEffect(() => {
         if (accessToken && !auth.reqUser) {
             dispatch(currentUser());
         }
     }, [accessToken, auth.reqUser, dispatch]);
 
-    /* Giá trị guard chung */
     useEffect(() => {
         if (!isAuthenticated) return;
         dispatch(getUsersChat());
@@ -358,14 +408,13 @@ const HomePage = () => {
         dispatch(fetchPresenceSnapshot());
     }, [isAuthenticated, dispatch]);
 
-    /* WebSocket lifecycle */
-    const stompRef = useRef(null);
-    const retryTimeoutRef = useRef(null);
-
+    // ========================================================================
+    // WEBSOCKET CONNECTION & SUBSCRIPTIONS
+    // ========================================================================
     const connect = useCallback(() => {
         if (!isAuthenticated || !accessToken || stompRef.current) return;
 
-        const sock = new SockJS("http://localhost:8080/whatsapp/ws");
+        const sock = new SockJS(ENV_CONFIG.API.WS_URL);
         const client = over(sock);
 
         const xsrf = getCookie("XSRF-TOKEN");
@@ -408,6 +457,7 @@ const HomePage = () => {
         return () => disconnect();
     }, [connect, disconnect]);
 
+    // Group message subscriptions
     const markCurrentChatAsRead = useCallback(
         (chatId) => {
             if (!chatId) return;
@@ -453,7 +503,6 @@ const HomePage = () => {
         [currentChat?.id, currentUserId, dispatch, markCurrentChatAsRead]
     );
 
-    const groupSubscriptionsRef = useRef({});
     useEffect(() => {
         if (!isConnected || !stompClient) return;
 
@@ -481,7 +530,24 @@ const HomePage = () => {
         };
     }, [safeChats, isConnected, stompClient, handleIncomingGroupMessage]);
 
-    /* Message sync */
+    // Unread subscriptions
+    useEffect(() => {
+        if (!isConnected || !stompClient || !auth.reqUser) return;
+
+        const subscription = stompClient.subscribe(
+            "/user/queue/unread",
+            (payload) => {
+                const data = JSON.parse(payload.body);
+                dispatch(handleUnreadPush(data));
+            }
+        );
+
+        return () => subscription.unsubscribe();
+    }, [isConnected, stompClient, auth.reqUser, dispatch]);
+
+    // ========================================================================
+    // MESSAGE HANDLING & PAGINATION
+    // ========================================================================
     useEffect(() => {
         setMessages(message.messages || []);
         messagesChatIdRef.current = message.pagination?.chatId || null;
@@ -500,7 +566,6 @@ const HomePage = () => {
         );
     }, [currentChat, isAuthenticated, dispatch]);
 
-    /* Infinite scroll */
     const loadOlderMessages = useCallback(async () => {
         if (!currentChat?.id) return;
         if (!pagination || pagination.chatId !== currentChat.id) return;
@@ -624,7 +689,9 @@ const HomePage = () => {
         loadOlderMessages,
     ]);
 
-    /* Keep currentChat fresh */
+    // ========================================================================
+    // CHAT OPERATIONS
+    // ========================================================================
     useEffect(() => {
         if (!currentChat) return;
         const fresh = safeChats.find((c) => c.id === currentChat.id);
@@ -633,7 +700,6 @@ const HomePage = () => {
         }
     }, [safeChats, currentChat]);
 
-    /* Auth / chat handlers */
     const handleLogout = () => {
         dispatch(logout());
         navigate("/auth");
@@ -667,7 +733,7 @@ const HomePage = () => {
             }
         } catch (err) {
             toast.error("Tạo chat thất bại");
-            console.error(err);
+            logger.error("HomePage.handleSelectContactUser", err, { userId: user?.id });
         }
     };
 
@@ -707,20 +773,19 @@ const HomePage = () => {
         }
     };
 
+    const handleBackToChatList = () => {
+        setCurrentChat(null);
+    };
+
+    // ========================================================================
+    // GROUP OPERATIONS
+    // ========================================================================
     const handleOpenGroupInfo = () => {
-        if (!isGroupChat(currentChat)) return;
+        if (!checkIsGroupChat(currentChat)) return;
         setIsGroupInfoOpen(true);
     };
 
     const handleCloseGroupInfo = () => setIsGroupInfoOpen(false);
-
-    const isCurrentUserAdmin =
-        isGroupChat(currentChat) &&
-        (currentChat?.createdBy?.id === currentUserId ||
-            currentChat?.admins?.some((admin) => admin.id === currentUserId));
-
-    const isCurrentUserCreator =
-        isGroupChat(currentChat) && currentChat?.createdBy?.id === currentUserId;
 
     const handleRenameGroup = async (nextName) => {
         const trimmed = nextName?.trim();
@@ -784,24 +849,9 @@ const HomePage = () => {
         }
     };
 
-    const handleBackToChatList = () => {
-        setCurrentChat(null);
-    };
-
-    useEffect(() => {
-        if (!isConnected || !stompClient || !auth.reqUser) return;
-
-        const subscription = stompClient.subscribe(
-            "/user/queue/unread",
-            (payload) => {
-                const data = JSON.parse(payload.body);
-                dispatch(handleUnreadPush(data));
-            }
-        );
-
-        return () => subscription.unsubscribe();
-    }, [isConnected, stompClient, auth.reqUser, dispatch]);
-
+    // ========================================================================
+    // TYPING & PRESENCE HANDLERS
+    // ========================================================================
     const handleIncomingTypingEvent = useCallback(
         (payload) => {
             const data = JSON.parse(payload.body);
@@ -874,13 +924,16 @@ const HomePage = () => {
     }, [isConnected, stompClient, handlePresenceEvent]);
 
     useEffect(() => {
-        if (!isAuthenticated || !currentChat || isGroupChat(currentChat)) return;
+        if (!isAuthenticated || !currentChat || checkIsGroupChat(currentChat)) return;
         const partner = currentChat.members?.find((m) => m.id !== auth.reqUser?.id);
         if (partner?.id) {
             dispatch(fetchPresenceByUser({ userId: partner.id }));
         }
     }, [isAuthenticated, currentChat, auth.reqUser?.id, dispatch]);
 
+    // ========================================================================
+    // RENDER
+    // ========================================================================
     return (
         <div className="homepage-container">
             <div className="flex h-screen w-screen bg-gray-50">
@@ -962,7 +1015,7 @@ const HomePage = () => {
                 </div>
             </div>
 
-            {isGroupChat(currentChat) && (
+            {checkIsGroupChat(currentChat) && (
                 <GroupInfoSheet
                     open={isGroupInfoOpen}
                     onClose={handleCloseGroupInfo}

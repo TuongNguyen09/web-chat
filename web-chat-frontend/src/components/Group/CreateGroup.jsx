@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import SelectedMember from "./SelectedMember";
 import NewGroup from "./NewGroup";
 import { searchUser } from "../../redux/auth/action";
+import { DEFAULT_AVATAR } from "../../constants/defaults";
 
 const CreateGroup = ({ setIsGroup, onClose }) => {
   const [newGroup, setNewGroup] = useState(false);
@@ -87,10 +88,7 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
             <div className="flex items-center gap-3">
               <img
                 className="h-12 w-12 rounded-full object-cover"
-                src={
-                  user.profilePicture ||
-                  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png"
-                }
+                src={user.profilePicture || DEFAULT_AVATAR}
                 alt={user.fullName}
               />
               <div className="flex-1 min-w-0">

@@ -11,6 +11,12 @@ import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
 import axios from 'axios';
 import { pickFileMeta } from "../../utils/fileMeta";
+import { logger } from "../../utils/logger";
+import { formatDate, formatDateTime } from "../../utils/dateUtils";
+import { isGroupChat, getChatTitle, getChatAvatar } from "../../utils/chatUtils";
+import { ENV_CONFIG } from "../../config/env";
+import { downloadFile } from "../../utils/fileDownloader";
+import { uploadFileToCloudinary } from "../../utils/cloudinaryUploader";
 
 const ChatBox = (props) => {
   const {
@@ -134,27 +140,19 @@ const ChatBox = (props) => {
 
   /* ---------- Existing logic (upload, send, etc.) giữ nguyên ---------- */
   const partner = currentChat?.members?.find((u) => u.id !== auth.reqUser?.id);
-  const chatTitle = currentChat?.group
-    ? currentChat?.chatName || "Group Chat"
-    : partner?.fullName || "Unknown User";
-  const chatAvatar = currentChat?.group
-    ? currentChat.chatImage || defaultGroupImage
-    : partner?.profilePicture || defaultAvatar;
+  const chatTitle = getChatTitle(currentChat, auth.reqUser?.id, "Group Chat");
+  const chatAvatar = getChatAvatar(currentChat, auth.reqUser?.id, {
+    avatar: defaultAvatar,
+    groupImage: defaultGroupImage
+  });
 
   const handlePickFile = () => fileInputRef.current?.click();
 
   const uploadToCloudinary = (file, fileId) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "whatsapp");
-    formData.append("folder", "chat_attachments");
-
-    return axios.post("https://api.cloudinary.com/v1_1/dj923dmx3/auto/upload", formData, {
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        updateFileProgress(fileId, percentCompleted);
-      }
-    }).then(response => response.data);
+    return uploadFileToCloudinary(file, {
+      folder: "chat_attachments",
+      onProgress: (progress) => updateFileProgress(fileId, progress),
+    });
   };
 
   const detectMessageType = (mime) => {
@@ -219,6 +217,7 @@ const ChatBox = (props) => {
 
     } catch (err) {
       toast.error("Tải file thất bại");
+      logger.error("handleFilesSelected", err, { fileCount: files.length });
       // Đánh dấu các file còn đang 'uploading' là 'error'
       setPendingAttachments(prev =>
         prev.map(item =>
@@ -390,26 +389,8 @@ const ChatBox = (props) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
-  const downloadFile = async (url, filename = "attachment") => {
-    try {
-      const response = await fetch(url, { credentials: "omit" });
-      if (!response.ok) throw new Error("Download failed");
-
-      const blob = await response.blob();
-      const tempUrl = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = tempUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      a.remove();
-      URL.revokeObjectURL(tempUrl);
-    } catch (err) {
-      toast.error("Không tải được file");
-      console.error(err);
-    }
+  const handleDownloadFile = async (url, filename = "attachment") => {
+    await downloadFile(url, filename);
   };
 
   const downloadAllFromMessage = useCallback((messageId) => {
@@ -419,7 +400,7 @@ const ChatBox = (props) => {
       att.mimeType?.startsWith("image/")
     );
     imgs.forEach((img, idx) =>
-      downloadFile(img.url, img.fileName || `image-${idx + 1}`)
+      handleDownloadFile(img.url, img.fileName || `image-${idx + 1}`)
     );
   }, [messages]);
 
@@ -434,10 +415,10 @@ const ChatBox = (props) => {
     if (diff < 60_000) return "Vừa hoạt động";
     if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} phút trước`;
     if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} giờ trước`;
-    return `Hoạt động ${new Date(timestamp).toLocaleDateString("vi-VN")}`;
+    return `Hoạt động ${formatDate(new Date(timestamp))}`;
   };
 
-  const statusLabel = currentChat?.group
+  const statusLabel = isGroupChat(currentChat)
     ? `${currentChat.members?.length || 0} thành viên`
     : isPartnerOnline
       ? "Online"
@@ -463,7 +444,7 @@ const ChatBox = (props) => {
                 src={chatAvatar}
                 alt="chat"
               />
-              {!currentChat?.group && isPartnerOnline && (
+              {!isGroupChat(currentChat) && isPartnerOnline && (
                 <span
                   className="
           absolute -top-0.5 -left-0.5
@@ -478,7 +459,7 @@ const ChatBox = (props) => {
             <div>
               <p className="font-medium text-gray-800">{chatTitle}</p>
               <p className="text-xs text-gray-500 flex items-center gap-1">
-                {!currentChat?.group && (
+                {!isGroupChat(currentChat) && (
                   <span
                     className={`
             inline-block h-2 w-2 rounded-full
@@ -524,10 +505,10 @@ const ChatBox = (props) => {
 
         <div className="px-4 py-6 space-y-2">
           {messages.map((message, index) => {
-            const currentDate = message.timeStamp ? formatDateLabel(message.timeStamp) : null;
+            const currentDate = message.timeStamp ? formatDate(message.timeStamp) : null;
             const previousDate =
               index > 0 && messages[index - 1].timeStamp
-                ? formatDateLabel(messages[index - 1].timeStamp)
+                ? formatDate(messages[index - 1].timeStamp)
                 : null;
             const showDivider = currentDate && currentDate !== previousDate;
 
@@ -765,7 +746,7 @@ const ChatBox = (props) => {
               <p className="text-xs text-gray-300">
                 {currentImage.senderName} ·{" "}
                 {currentImage.timeStamp
-                  ? new Date(currentImage.timeStamp).toLocaleString("vi-VN")
+                  ? formatDateTime(currentImage.timeStamp)
                   : ""}
               </p>
             </div>
@@ -777,7 +758,7 @@ const ChatBox = (props) => {
                 type="button"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  await downloadFile(currentImage.url, currentImage.fileName || "image");
+                  await handleDownloadFile(currentImage.url, currentImage.fileName || "image");
                 }}
                 title="Tải ảnh này"
                 aria-label="Tải ảnh này"
