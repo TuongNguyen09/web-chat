@@ -42,6 +42,7 @@ yarn-debug.log*
 .DS_Store
 Thumbs.db
 
-# Each subfolder has its own .gitignore for more specific rules
-# web-chat-backend/.gitignore
-# web-chat-frontend/.gitignore
+### Documentation Files (Except README) ###
+*.md
+!README.md
+
