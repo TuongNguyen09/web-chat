@@ -50,11 +50,16 @@ export const login = (data) => async (dispatch) => {
     });
 
     try {
-      const result = await parseApiResponse(res);
-      const accessToken = result?.accessToken;
+      const response = await res.json();
+      if (!res.ok || (response.code !== 1000 && response.code !== 0)) {
+        clearAccessToken();
+        return dispatch({ type: LOGIN, payload: { error: response.message || "Đăng nhập thất bại" } });
+      }
+
+      const accessToken = response?.result?.accessToken;
       setAccessToken(accessToken);
 
-      dispatch({ type: LOGIN, payload: { success: true, data: result } });
+      dispatch({ type: LOGIN, payload: { success: true, data: response.result } });
       dispatch(currentUser());
     } catch (error) {
       clearAccessToken();

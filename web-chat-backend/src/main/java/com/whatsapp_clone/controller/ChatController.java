@@ -115,7 +115,6 @@ public class ChatController {
     }
 
     // 🔹 Rename a group
-// ✅ Đổi tên endpoint cho đúng ý nghĩa hơn, ví dụ /{chatId}/update
     @PutMapping("/{chatId}/update")
     public ApiResponse<Chat> updateGroup(
             @PathVariable String chatId,

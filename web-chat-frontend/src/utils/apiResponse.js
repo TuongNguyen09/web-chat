@@ -47,7 +47,8 @@ export const parseApiResponse = async (res, options = {}) => {
   }
 
   // Check response code (if API uses code field)
-  if (data && typeof data.code === "number" && data.code !== 0) {
+  // Backend uses: 1000 = success, 4xx/5xx = error
+  if (data && typeof data.code === "number" && data.code !== 1000 && data.code !== 0) {
     const errorMessage = data.message || defaultErrorMessage;
     const error = new Error(errorMessage);
     error.code = data.code;

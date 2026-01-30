@@ -5,6 +5,7 @@ import { AiOutlineSearch } from "react-icons/ai";
 import { BsFilter, BsThreeDotsVertical } from "react-icons/bs";
 import { Menu, MenuItem } from "@mui/material";
 import ChatCard from "../ChatCard";
+import ThemeToggle from "../ThemeToggle";
 import { isGroupChat, getChatTitle, getChatAvatar, getChatPartner } from "../../utils/chatUtils";
 
 const SidePanel = ({
@@ -82,9 +83,9 @@ const SidePanel = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white dark:bg-[#252525] dark:text-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div
           onClick={onOpenProfile}
           className="flex items-center gap-3 cursor-pointer"
@@ -94,24 +95,25 @@ const SidePanel = ({
             src={auth.reqUser?.profilePicture || defaultAvatar}
             alt={auth.reqUser?.fullName}
           />
-          <p className="font-medium text-gray-800">
+          <p className="font-semibold text-gray-800 dark:text-white">
             {auth.reqUser?.fullName}
           </p>
         </div>
 
-        <div className="flex items-center gap-4 text-gray-600">
+        <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
           <TbCircleDashed
             size={22}
-            className="cursor-pointer hover:text-gray-800"
+            className="cursor-pointer hover:text-gray-800 dark:hover:text-gray-300"
             onClick={onGoStatus}
           />
           <BiCommentDetail
             size={22}
-            className="cursor-pointer hover:text-gray-800"
+            className="cursor-pointer hover:text-gray-800 dark:hover:text-gray-300"
           />
+          <ThemeToggle />
           <BsThreeDotsVertical
             size={22}
-            className="cursor-pointer hover:text-gray-800"
+            className="cursor-pointer hover:text-gray-800 dark:hover:text-gray-300"
             onClick={onMenuOpen}
           />
 
@@ -133,12 +135,13 @@ const SidePanel = ({
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
         <div className="relative">
           <AiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            className="w-full bg-gray-100 rounded-lg pl-10 pr-4 py-2 text-sm outline-none
-                       focus:bg-white focus:ring-2 focus:ring-[#00a884]"
+            className="w-full bg-gray-100 dark:bg-[#2a2a2a] rounded-lg pl-10 pr-4 py-2 text-sm outline-none
+                       text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
+                       focus:bg-white dark:focus:bg-gray-700 focus:ring-2 focus:ring-[#00a884]"
             placeholder="Tìm kiếm hoặc bắt đầu chat mới"
             value={chatKeyword}
             onChange={(e) => onSearchChats(e.target.value)}
@@ -149,7 +152,7 @@ const SidePanel = ({
 
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto">
-        <div className="py-2 divide-y divide-gray-100">
+        <div className="py-2 divide-y divide-gray-100 dark:divide-gray-700">
           {renderChats()}
         </div>
       </div>

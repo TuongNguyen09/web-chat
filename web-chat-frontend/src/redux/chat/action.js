@@ -7,6 +7,8 @@ import {
   GET_USERS_CHAT,
   UPDATE_CHAT,
   REMOVE_CHAT,
+  UPDATE_CHAT_LAST_MESSAGE,
+  SORT_CHATS_BY_LATEST,
 } from "./actionType";
 
 const buildKeywordQuery = (keyword) => {
@@ -42,7 +44,11 @@ export const createGroupChat = ({ group }) => async (dispatch) => {
     return { success: true, result };
   } catch (error) {
     logger.error("createGroup", error, { groupName: group?.name });
-    return { success: false, error };
+    return { 
+      success: false, 
+      message: error?.message || "Tạo nhóm thất bại!",
+      error 
+    };
   }
 };
 
@@ -130,3 +136,12 @@ export const deleteChat = ({ chatId }) => async (dispatch) => {
     throw error;
   }
 };
+
+export const updateChatLastMessage = ({ chatId, lastMessage }) => ({
+  type: UPDATE_CHAT_LAST_MESSAGE,
+  payload: { chatId, lastMessage },
+});
+
+export const sortChatsByLatest = () => ({
+  type: SORT_CHATS_BY_LATEST,
+});

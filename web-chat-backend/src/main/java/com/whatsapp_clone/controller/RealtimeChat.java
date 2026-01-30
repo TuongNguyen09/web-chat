@@ -23,8 +23,12 @@ public class RealtimeChat {
 
     @MessageMapping("/message")
     public void receiveMessage(@Payload SendMessageRequest request) {
-        MessageResponse savedMessage = messageService.sendMessage(request);
-        System.out.println("Sending message to group: " + savedMessage.getChatId());
-        simpMessagingTemplate.convertAndSend("/group/" + savedMessage.getChatId(), savedMessage);
+        try {
+            MessageResponse savedMessage = messageService.sendMessage(request);
+            simpMessagingTemplate.convertAndSend("/group/" + savedMessage.getChatId(), savedMessage);
+        } catch (Exception e) {
+            System.err.println("❌ Error in receiveMessage: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

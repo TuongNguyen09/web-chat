@@ -5,3 +5,5 @@ export const UPDATE_CHAT = "UPDATE_CHAT";
 export const REMOVE_CHAT = "REMOVE_CHAT";
 export const SET_UNREAD = "SET_UNREAD";
 export const INC_UNREAD = "INC_UNREAD";
+export const UPDATE_CHAT_LAST_MESSAGE = "UPDATE_CHAT_LAST_MESSAGE";
+export const SORT_CHATS_BY_LATEST = "SORT_CHATS_BY_LATEST";

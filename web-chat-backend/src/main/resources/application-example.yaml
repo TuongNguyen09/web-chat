@@ -22,6 +22,11 @@ jwt:
   valid-duration: 3600
   refreshable-duration: 7200
 
+app:
+  cookie:
+    # Set true khi deploy HTTPS để cookie có SameSite=None; false cho môi trường dev HTTP
+    secure: false
+
 # ==========================================
 # SETUP GUIDE:
 # ==========================================

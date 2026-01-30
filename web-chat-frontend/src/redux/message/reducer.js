@@ -16,13 +16,12 @@ export const messageReducer = (store = initialValue, { type, payload }) => {
   switch (type) {
     case CREATE_NEW_MESSAGE: {
       const incoming = normalizeMessage(payload);
-      if (store.pagination.chatId !== incoming.chatId) {
-        return { ...store, newMessage: incoming };
-      }
       const alreadyHave = store.messages.some((m) => m.id === incoming.id);
+      const isCurrentChat = store.pagination.chatId === incoming.chatId;
+      
       return {
         ...store,
-        newMessage: incoming,
+        newMessage: isCurrentChat ? incoming : store.newMessage,
         messages: alreadyHave ? store.messages : [...store.messages, incoming],
       };
     }

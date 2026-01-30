@@ -1,5 +1,6 @@
 package com.whatsapp_clone.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.whatsapp_clone.constant.MessageType;
 import com.whatsapp_clone.dto.Attachment;
 import com.whatsapp_clone.dto.LinkPreview;
@@ -18,6 +19,7 @@ public class MessageResponse {
     String id;
     MessageType type;
     String content;
+    @JsonProperty("timeStamp")
     LocalDateTime timeStamp;
     String chatId;
     UserResponse sender;

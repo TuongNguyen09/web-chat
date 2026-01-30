@@ -83,23 +83,23 @@ const Profile = ({ onClose }) => {
   }, [auth.reqUser, isEditingName]);
 
   return (
-    <div className="h-full flex flex-col bg-[#f0f2f5]">
-      <div className="flex items-center px-4 py-3 bg-[#00a884] text-white shrink-0">
+    <div className="h-full flex flex-col bg-[#f0f2f5] dark:bg-[#252525] dark:text-white">
+      <div className="flex items-center px-4 py-3 bg-[#00a884] dark:bg-[#1e6940] text-white shrink-0">
         <button
           onClick={onClose}
           className="p-2 hover:bg-[#008069] rounded-full transition-colors mr-3"
         >
           <BsArrowLeft className="text-xl" />
         </button>
-        <h1 className="text-lg font-semibold">Hồ sơ</h1>
+        <h1 className="text-lg font-bold">Hồ sơ</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="flex justify-center py-8">
           <div className="relative group">
-            <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-white shadow-sm">
+            <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-sm">
               {isUploading ? (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-[#2a2a2a]">
                   <CircularProgress style={{ color: "#00a884" }} />
                 </div>
               ) : (
@@ -116,7 +116,7 @@ const Profile = ({ onClose }) => {
               className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
             >
               <BsCamera className="text-2xl mb-2" />
-              <span className="text-xs font-medium uppercase text-center px-2">
+              <span className="text-xs font-semibold uppercase text-center px-2">
                 Thay đổi
                 <br />
                 ảnh đại diện
@@ -133,17 +133,17 @@ const Profile = ({ onClose }) => {
           </div>
         </div>
 
-        <div className="bg-white shadow-sm mb-4 px-4 py-4 md:px-8">
-          <p className="text-[#008069] text-sm font-medium mb-3">Tên hiển thị</p>
+        <div className="bg-white dark:bg-[#2a2a2a] shadow-sm mb-4 px-4 py-4 md:px-8">
+          <p className="text-[#008069] dark:text-[#4fab7a] text-sm font-semibold mb-3">Tên hiển thị</p>
 
           {!isEditingName ? (
             <div className="flex justify-between items-center group">
-              <p className="text-gray-800 text-lg flex-1 truncate pr-4">
+              <p className="text-gray-800 dark:text-white text-lg flex-1 truncate pr-4">
                 {auth.reqUser?.fullName || "Chưa đặt tên"}
               </p>
               <button
                 onClick={handleStartEditing}
-                className="p-2 text-gray-400 hover:text-[#00a884] transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#00a884] dark:hover:text-[#4db876] transition-colors"
               >
                 <BsPencil className="text-xl" />
               </button>
@@ -156,17 +156,17 @@ const Profile = ({ onClose }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full outline-none py-1 text-lg text-gray-800 bg-transparent"
+                  className="w-full outline-none py-1 text-lg text-gray-800 dark:text-white bg-transparent"
                   autoFocus
                   maxLength={25}
                 />
-                <div className="text-right text-xs text-gray-400 mt-1">
+                <div className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
                   {25 - username.length}
                 </div>
               </div>
               <button
                 onClick={handleSaveName}
-                className="p-2 text-gray-400 hover:text-[#00a884] mb-1"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#00a884] dark:hover:text-[#4db876] mb-1"
               >
                 <BsCheck2 className="text-2xl" />
               </button>
@@ -175,16 +175,16 @@ const Profile = ({ onClose }) => {
         </div>
 
         <div className="px-4 md:px-8 mb-8">
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             Đây không phải là tên người dùng hoặc mã PIN của bạn. Tên này sẽ hiển thị với các liên hệ WhatsApp của bạn.
           </p>
         </div>
 
-        <div className="bg-white shadow-sm px-4 py-4 md:px-8 cursor-pointer hover:bg-gray-50 transition-colors">
-          <p className="text-[#008069] text-sm font-medium mb-1">Giới thiệu</p>
+        <div className="bg-white dark:bg-[#2a2a2a] shadow-sm px-4 py-4 md:px-8 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#3a3a3a] transition-colors">
+          <p className="text-[#008069] dark:text-[#4fab7a] text-sm font-semibold mb-1">Giới thiệu</p>
           <div className="flex justify-between items-center">
-            <p className="text-gray-800">Hey there! I am using WhatsApp.</p>
-            <button className="p-2 text-gray-400 hover:text-[#00a884]">
+            <p className="text-gray-800 dark:text-gray-300">Hey there! I am using WhatsApp.</p>
+            <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#00a884] dark:hover:text-[#4db876]">
               <BsPencil className="text-xl" />
             </button>
           </div>

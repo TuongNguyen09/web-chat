@@ -5,6 +5,12 @@ import { IconButton, Menu, MenuItem } from "@mui/material";
 import { DEFAULT_AVATAR } from "../../../constants/defaults";
 
 const fallbackAvatar = DEFAULT_AVATAR;
+const getMemberAvatar = (user) =>
+  user?.profile_picture ||
+  user?.profilePicture ||
+  user?.avatar ||
+  user?.chatImage ||
+  fallbackAvatar;
 
 const GroupMembersPanel = ({
   chat,
@@ -62,34 +68,43 @@ const GroupMembersPanel = ({
     const openMenu = Boolean(anchorEl);
 
     return (
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer group">
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer group text-gray-900 dark:text-white">
         <img
-          src={member.chatImage || fallbackAvatar}
+          src={getMemberAvatar(member)}
           alt={member.fullName}
           className="w-10 h-10 rounded-full object-cover"
         />
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center">
-            <p className="font-medium text-gray-900 truncate">
+            <p className="font-semibold text-gray-900 dark:text-white truncate">
               {isSelf ? "Bạn" : member.fullName}
             </p>
             {isAdmin && (
-              <span className="text-[10px] font-semibold text-[#00a884] border border-[#00a884] px-1.5 rounded ml-2 shrink-0">
+              <span className="text-[10px] font-bold text-[#00a884] dark:text-[#4fab7a] border border-[#00a884] dark:border-[#4fab7a] px-1.5 rounded ml-2 shrink-0">
                 Quản trị viên
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 truncate">
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
             {member.email || member.phone || "Hey there! I am using WhatsApp."}
           </p>
         </div>
         
         {(canRemove && !isSelf) && (
-            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-               <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
+          <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity md:opacity-100">
+                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); setAnchorEl(e.currentTarget); }}>
                    <BsThreeDotsVertical fontSize="small" />
                </IconButton>
-               <Menu anchorEl={anchorEl} open={openMenu} onClose={() => setAnchorEl(null)}>
+                 <Menu
+                   anchorEl={anchorEl}
+                   open={openMenu}
+                   onClose={() => setAnchorEl(null)}
+                   disableScrollLock
+                   slotProps={{
+                     root: { sx: { zIndex: 2000 } },
+                     paper: { sx: { zIndex: 2000 } },
+                   }}
+                 >
                    <MenuItem onClick={() => { onRequestRemoveMember(member.id); setAnchorEl(null); }} className="text-red-600">
                        Xóa khỏi nhóm
                    </MenuItem>
@@ -104,15 +119,15 @@ const GroupMembersPanel = ({
   const CandidateItem = ({ user }) => {
      return (
         <div 
-            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors text-gray-900 dark:text-white"
             onClick={() => onRequestAddMember(user.id)}
         >
-            <img src={user.chatImage || fallbackAvatar} className="w-10 h-10 rounded-full object-cover" alt="" />
+            <img src={getMemberAvatar(user)} className="w-10 h-10 rounded-full object-cover" alt="" />
             <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{user.fullName}</p>
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                <p className="font-semibold text-gray-900 dark:text-white truncate">{user.fullName}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
             </div>
-            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 group-hover:bg-[#00a884]/10">
+            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#2a2a2a] group-hover:bg-[#00a884]/10">
                 <AiOutlineUserAdd className="text-[#00a884] text-xl" />
             </div>
         </div>
@@ -120,19 +135,19 @@ const GroupMembersPanel = ({
   };
 
   return (
-    <div className="bg-white shadow-sm">
+    <div className="bg-white dark:bg-[#252525] shadow-sm">
       {/* Header Search */}
-      <div className="px-4 py-3 border-b flex items-center gap-2 sticky top-0 bg-white z-10">
+      <div className="px-4 py-3 border-b dark:border-gray-700 flex items-center gap-2 sticky top-0 bg-white dark:bg-[#252525] z-10">
         {isAddMode ? (
-            <button onClick={() => { setIsAddMode(false); setKeyword(""); }} className="mr-2 p-1 rounded-full hover:bg-gray-100">
-                <AiOutlineArrowLeft className="text-gray-600" />
+            <button onClick={() => { setIsAddMode(false); setKeyword(""); }} className="mr-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <AiOutlineArrowLeft className="text-gray-600 dark:text-gray-400" />
             </button>
         ) : (
-            <AiOutlineSearch className="text-gray-400 text-lg" />
+            <AiOutlineSearch className="text-gray-400 dark:text-gray-500 text-lg" />
         )}
         
         <input 
-            className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent"
+            className="flex-1 outline-none text-sm text-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 bg-transparent"
             placeholder={isAddMode ? "Tìm người để thêm..." : "Tìm kiếm thành viên..."}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
@@ -142,22 +157,22 @@ const GroupMembersPanel = ({
       {/* Button mở chế độ Add Member */}
       {!isAddMode && isCurrentUserAdmin && (
         <div 
-            className="flex items-center gap-4 px-4 py-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors"
+            className="flex items-center gap-4 px-4 py-4 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer border-b border-gray-100 dark:border-gray-700 transition-colors text-gray-800 dark:text-white"
             onClick={() => { setIsAddMode(true); setKeyword(""); }}
         >
             <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center shadow-sm">
                 <AiOutlinePlus className="text-white text-xl" />
             </div>
-            <p className="font-medium text-gray-800">Thêm thành viên</p>
+            <p className="font-semibold">Thêm thành viên</p>
         </div>
       )}
 
       {/* Content List */}
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y dark:divide-gray-700 divide-gray-50 dark:divide-opacity-30">
           {/* --- CHẾ ĐỘ THÊM THÀNH VIÊN --- */}
           {isAddMode && (
               <>
-                 <p className="px-4 py-2 text-xs font-bold text-gray-400 bg-gray-50 uppercase">
+                 <p className="px-4 py-2 text-xs font-extrabold text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#0a0a0a] uppercase">
                      {keyword ? "Kết quả tìm kiếm" : "Gợi ý từ liên hệ"}
                  </p>
                  
@@ -165,12 +180,12 @@ const GroupMembersPanel = ({
                      // Hiển thị kết quả tìm kiếm (đã lọc)
                      availableSearchResults.length > 0 ? (
                         availableSearchResults.map(u => <CandidateItem key={u.id} user={u} />)
-                     ) : <p className="px-4 py-8 text-sm text-gray-500 text-center">Không tìm thấy người dùng phù hợp.</p>
+                     ) : <p className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">Không tìm thấy người dùng phù hợp.</p>
                  ) : (
                      // Hiển thị gợi ý ban đầu (đã lọc)
                      availableContacts.length > 0 ? (
                         availableContacts.map(u => <CandidateItem key={u.id} user={u} />)
-                     ) : <p className="px-4 py-8 text-sm text-gray-500 text-center">Nhập tên hoặc email để tìm kiếm.</p>
+                     ) : <p className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">Nhập tên hoặc email để tìm kiếm.</p>
                  )}
               </>
           )}
@@ -178,7 +193,7 @@ const GroupMembersPanel = ({
           {/* --- CHẾ ĐỘ XEM DANH SÁCH THÀNH VIÊN --- */}
           {!isAddMode && (
               <>
-                <p className="px-4 py-2 text-xs font-bold text-gray-400 bg-gray-50 uppercase">
+                <p className="px-4 py-2 text-xs font-extrabold text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#0a0a0a] uppercase">
                     {filteredCurrentMembers.length} thành viên
                 </p>
                 {filteredCurrentMembers.map((member) => (
@@ -191,7 +206,7 @@ const GroupMembersPanel = ({
                     />
                 ))}
                 {filteredCurrentMembers.length === 0 && (
-                    <p className="px-4 py-4 text-sm text-gray-500 text-center">Không tìm thấy thành viên nào.</p>
+                    <p className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">Không tìm thấy thành viên nào.</p>
                 )}
               </>
           )}

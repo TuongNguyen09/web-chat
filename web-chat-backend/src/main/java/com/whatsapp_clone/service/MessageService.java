@@ -40,8 +40,6 @@ public class MessageService {
     UnreadCountService unreadCountService;
 
     public MessageResponse sendMessage(SendMessageRequest request) {
-        System.out.println("WS payload attachments = " + request.getAttachments());
-
         Chat chat = chatRepository.findById(request.getChatId())
                 .orElseThrow(() -> new AppException(ErrorCode.CHAT_NOT_EXISTED));
 
@@ -79,8 +77,6 @@ public class MessageService {
                 sender.getId(),
                 chat.getMemberIds()
         );
-
-        System.out.println("Saved attachments size = " + saved.getAttachments().size());
 
         MessageResponse response = messageMapper.toMessageResponse(saved);
         if (response.getAttachments() == null) {

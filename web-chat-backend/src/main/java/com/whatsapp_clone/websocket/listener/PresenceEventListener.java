@@ -1,4 +1,4 @@
-package com.whatsapp_clone.controller;
+package com.whatsapp_clone.websocket.listener;
 
 import com.whatsapp_clone.model.User;
 import com.whatsapp_clone.service.PresenceService;

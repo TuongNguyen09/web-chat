@@ -24,11 +24,11 @@ const NewContact = ({ onClose, onSelectUser }) => {
   const renderList = () => {
     if (!keyword?.trim()) {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
-          <div className="bg-gray-100 p-4 rounded-full mb-4">
-            <BsPersonPlus className="text-3xl text-gray-400" />
+        <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500 dark:text-gray-400">
+          <div className="bg-gray-100 dark:bg-[#252525] p-4 rounded-full mb-4">
+            <BsPersonPlus className="text-3xl text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="font-medium text-gray-700">Tìm người liên hệ mới</p>
+          <p className="font-semibold text-gray-700 dark:text-gray-300">Tìm người liên hệ mới</p>
           <p className="text-sm mt-1">
             Nhập tên hoặc email để tìm và bắt đầu trò chuyện.
           </p>
@@ -38,14 +38,14 @@ const NewContact = ({ onClose, onSelectUser }) => {
 
     if (!auth.searchUser?.length) {
       return (
-        <div className="flex flex-col items-center justify-center pt-20 text-gray-500">
-          <p>Không tìm thấy kết quả cho “{keyword}”</p>
+        <div className="flex flex-col items-center justify-center pt-20 text-gray-500 dark:text-gray-400">
+          <p>Không tìm thấy kết quả cho "{keyword}"</p>
         </div>
       );
     }
 
     return (
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-gray-100 dark:divide-gray-700">
         {auth.searchUser.map((user) => (
           <UserCard
             key={user.id}
@@ -58,23 +58,23 @@ const NewContact = ({ onClose, onSelectUser }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="flex items-center px-4 py-3 bg-[#00a884] text-white shrink-0">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0a0a0a] dark:text-white">
+      <div className="flex items-center px-4 py-3 bg-[#00a884] dark:bg-[#1e6940] text-white shrink-0">
         <button
           onClick={onClose}
           className="p-2 mr-2 rounded-full hover:bg-[#008f6f] transition-colors"
         >
           <BsArrowLeft className="text-xl" />
         </button>
-        <h1 className="text-lg font-semibold">Thêm liên hệ mới</h1>
+        <h1 className="text-lg font-bold">Thêm liên hệ mới</h1>
       </div>
 
-      <div className="px-4 py-3 bg-white border-b border-gray-100 shrink-0 shadow-sm z-10">
+      <div className="px-4 py-3 bg-white dark:bg-[#252525] border-b border-gray-100 dark:border-gray-700 shrink-0 shadow-sm z-10">
         <div className="relative">
-          <AiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+          <AiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-lg" />
           <input
             ref={inputRef}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-gray-100 text-sm focus:bg-white focus:ring-2 focus:ring-[#00a884] focus:outline-none transition-all placeholder-gray-500"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-gray-100 dark:bg-[#2a2a2a] text-gray-800 dark:text-white text-sm focus:bg-white dark:focus:bg-[#3a3a3a] focus:ring-2 focus:ring-[#00a884] focus:outline-none transition-all placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Tìm kiếm tên hoặc email..."
             value={keyword}
             onChange={(e) => handleSearch(e.target.value)}
@@ -82,7 +82,7 @@ const NewContact = ({ onClose, onSelectUser }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-[#0a0a0a]">
         {renderList()}
       </div>
     </div>

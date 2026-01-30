@@ -26,16 +26,16 @@ const formatBytes = (bytes) => {
 
 const BUBBLE_PALETTE = {
   own: {
-    cardBg: "bg-[#bde8c4]",
-    cardHover: "hover:bg-[#aee2b8]",
-    downloadText: "text-[#0a7755]",
-    iconRing: "ring-[#0a7755]/20",
+    cardBg: "bg-[#bde8c4] dark:bg-[#1e6940]",
+    cardHover: "hover:bg-[#aee2b8] dark:hover:bg-[#3a9561]",
+    downloadText: "text-[#0a7755] dark:text-[#4fab7a]",
+    iconRing: "ring-[#0a7755]/20 dark:ring-[#4fab7a]/20",
   },
   other: {
-    cardBg: "bg-white/90",
-    cardHover: "hover:bg-white",
-    downloadText: "text-[#475569]",
-    iconRing: "ring-gray-200",
+    cardBg: "bg-white/90 dark:bg-[#2a2a2a]",
+    cardHover: "hover:bg-white dark:hover:bg-gray-900",
+    downloadText: "text-[#475569] dark:text-[#4fab7a]",
+    iconRing: "ring-gray-200 dark:ring-[#4fab7a]/20",
   },
 };
 
@@ -63,7 +63,7 @@ const renderTextWithLinks = (text) => {
         href={normalized}
         target="_blank"
         rel="noreferrer"
-        className="text-[#0A84FF] underline underline-offset-4 font-medium hover:text-[#0077cc]"
+        className="text-[#0A84FF] hover:text-[#0077cc] dark:text-[#8cc5ff] dark:hover:text-[#b2ddff] underline underline-offset-4 font-semibold"
       >
         {url}
       </a>
@@ -97,38 +97,40 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
     if (!images.length) return null;
 
     return (
-      <div className="grid grid-cols-2 gap-1.5 max-w-[180px]">
-        {images.map((att) => (
-          <div
-            key={att.id || att.url}
-            className="relative rounded-xl overflow-hidden bg-black/10"
-          >
-            <button
-              type="button"
-              className="peer block w-[70px] aspect-square focus-visible:outline-none"
-              onClick={() => onImageClick?.(att)}
+      <div className={`rounded-xl overflow-hidden p-1.5 ${palette.cardBg}`}>
+        <div className="grid grid-cols-2 gap-1 max-w-[180px]">
+          {images.map((att) => (
+            <div
+              key={att.id || att.url}
+              className="relative rounded-lg overflow-hidden"
             >
-              <img
-                src={att.url}
-                alt={att.fileName || "attachment"}
-                className="h-full w-full object-cover"
-              />
-            </button>
+              <button
+                type="button"
+                className="peer block w-[70px] aspect-square focus-visible:outline-none"
+                onClick={() => onImageClick?.(att)}
+              >
+                <img
+                  src={att.url}
+                  alt={att.fileName || "attachment"}
+                  className="h-full w-full object-cover"
+                />
+              </button>
 
-            <button
-              type="button"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await downloadFile(att.url, att.fileName || "image");
-              }}
-              title="Tải ảnh này"
-              aria-label="Tải ảnh này"
-              className="pointer-events-none absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white opacity-0 transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 peer-hover:pointer-events-auto peer-focus-visible:pointer-events-auto"
-            >
-              <BsDownload size={12} />
-            </button>
-          </div>
-        ))}
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await downloadFile(att.url, att.fileName || "image");
+                }}
+                title="Tải ảnh này"
+                aria-label="Tải ảnh này"
+                className="pointer-events-none absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white opacity-0 transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 peer-hover:pointer-events-auto peer-focus-visible:pointer-events-auto"
+              >
+                <BsDownload size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -154,8 +156,8 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
           <Icon className={accent} size={22} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-sm font-semibold text-gray-800 truncate">{fileLabel}</p>
-          <p className="text-xs text-gray-500 truncate">
+          <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{fileLabel}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-300 truncate">
             {label} · {formatBytes(att.size)}
           </p>
         </div>
@@ -198,23 +200,25 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
 
     if (mime.startsWith("video/")) {
       return (
-        <video
-          key={key}
-          src={att.url}
-          controls
-          className="max-w-[260px] rounded-lg"
-        />
+        <div key={key} className={`inline-block rounded-lg overflow-hidden ${palette.cardBg} p-1`}>
+          <video
+            src={att.url}
+            controls
+            className="max-w-[260px] rounded"
+          />
+        </div>
       );
     }
 
     if (mime.startsWith("audio/")) {
       return (
-        <audio
-          key={key}
-          src={att.url}
-          controls
-          className="w-56 rounded-lg bg-white/70 px-1"
-        />
+        <div key={key} className={`inline-block w-56 rounded-lg overflow-hidden ${palette.cardBg} p-1`}>
+          <audio
+            src={att.url}
+            controls
+            className="w-full rounded"
+          />
+        </div>
       );
     }
 
@@ -240,8 +244,8 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
   };
 
   const bubbleClass = isRequestMessage
-    ? "bg-white text-gray-800"
-    : "bg-[#d1f6d3] text-gray-900";
+    ? "bg-white dark:bg-[#3a3a3a] text-gray-800 dark:text-white"
+    : "bg-[#d1f6d3] dark:bg-[#1e6940] text-gray-900 dark:text-white";
 
   return (
     <div
@@ -253,16 +257,16 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
         <button
           type="button"
           onClick={handleOpenMenu}
-          className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00a884]"
+          className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00a884]"
         >
           <BsThreeDotsVertical />
         </button>
 
         <div
-          className={`py-2 px-3 rounded-2xl shadow max-w-sm break-words whitespace-pre-wrap flex flex-col gap-2 ${bubbleClass}`}
+          className={`py-2 px-3 rounded-2xl shadow-md dark:shadow-lg max-w-sm break-words whitespace-pre-wrap flex flex-col gap-2 ${bubbleClass}`}
         >
           {content && (
-            <p className="leading-relaxed break-words text-[15px]">
+            <p className="leading-relaxed break-words text-[15px] font-semibold text-gray-700 dark:text-gray-300 tracking-wide">
               {renderTextWithLinks(content)}
             </p>
           )}
@@ -280,7 +284,7 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
                   }
                   title="Tải tất cả ảnh trong tin"
                   aria-label="Tải tất cả ảnh trong tin"
-                  className="inline-flex items-center gap-1 rounded-full bg-white/40 px-2 py-1 text-[#0a7755] hover:bg-white/70"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/40 px-2 py-1 text-[#0a7755] dark:text-[#4db876] hover:bg-white/70 dark:hover:bg-white/20"
                 >
                   <BsDownload size={14} />
                 </button>
@@ -292,7 +296,7 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
             otherAttachments.map((attachment) => renderAttachment(attachment))}
 
           {formattedTime && (
-            <span className="text-[11px] text-gray-500 ml-auto">{formattedTime}</span>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-auto font-normal">{formattedTime}</span>
           )}
         </div>
       </div>

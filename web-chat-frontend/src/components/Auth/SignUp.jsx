@@ -65,7 +65,7 @@ export const SignUp = ({ onSwitchMode }) => {
   return (
     <div className="w-full max-w-sm flex flex-col">
       <header className="mb-6 text-center">
-        <h2 className="text-2xl font-semibold text-[#111]">Sign up</h2>
+        <h2 className="text-2xl font-bold text-[#111]">Sign up</h2>
         <p className="text-sm text-[#6b7280] mt-1">
           Hoàn thiện thông tin để bắt đầu trò chuyện.
         </p>
@@ -78,7 +78,7 @@ export const SignUp = ({ onSwitchMode }) => {
           { label: 'Phone', name: 'phone', type: 'tel', placeholder: 'Số điện thoại' }
         ].map(field => (
           <div key={field.name}>
-            <label className="block text-sm font-medium text-[#374151] mb-2">
+            <label className="block text-sm font-semibold text-[#374151] mb-2">
               {field.label}
             </label>
             <input
@@ -98,7 +98,7 @@ export const SignUp = ({ onSwitchMode }) => {
 
         {['password', 'confirmPassword'].map(name => (
           <div key={name}>
-            <label className="block text-sm font-medium text-[#374151] mb-2">
+            <label className="block text-sm font-semibold text-[#374151] mb-2">
               {name === 'password' ? 'Password' : 'Confirm Password'}
             </label>
             <input
@@ -144,7 +144,7 @@ export const SignUp = ({ onSwitchMode }) => {
         Đã có tài khoản?
         <button
           onClick={onSwitchMode}
-          className="ml-2 font-semibold text-[#00a884] hover:underline"
+          className="ml-2 font-bold text-[#00a884] hover:underline"
         >
           Sign in
         </button>

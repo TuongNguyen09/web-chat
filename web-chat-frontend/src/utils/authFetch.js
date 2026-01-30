@@ -9,7 +9,7 @@ const refreshAccessToken = async () => {
   });
   if (!res.ok) throw new Error("Refresh thất bại");
   const payload = await res.json();
-  if (payload.code !== 0) throw new Error(payload.message || "Refresh thất bại");
+  if (payload.code !== 1000 && payload.code !== 0) throw new Error(payload.message || "Refresh thất bại");
 
   const newToken = payload?.result?.accessToken;
   if (!newToken) throw new Error("Không có access token mới");

@@ -22,34 +22,36 @@ export const SignIn = ({ onSwitchMode }) => {
     setOpenSnackBar(false);
   }, [dispatch]);
 
-  /* Nếu user đã login (bootstrap session) thì đẩy vào home */
-  useEffect(() => {
-    if (auth.reqUser?.fullName) {
-      navigate("/");
-    }
-  }, [auth.reqUser?.fullName, navigate]);
-
-  /* Theo dõi kết quả đăng nhập */
+  /* Redirect chỉ khi login form thành công, không redirect khi bootstrap session */
   useEffect(() => {
     const signinState = auth.signin;
+    console.log("❌ SignIn useEffect - signinState:", signinState);
+    
     if (!signinState) return;
 
+    // Chỉ xử lý error và success từ LOGIN action (form submission)
     if (signinState.error) {
+      console.log("❌ SignIn - Error state:", signinState.error);
       setErrors({ password: signinState.error });
       setOpenSnackBar(false);
       return;
     }
 
     if (signinState.success) {
+      console.log("✅ SignIn - Success! Redirecting to home in 1.2s...");
       setErrors({});
       setOpenSnackBar(true);
-      const timer = setTimeout(() => navigate("/"), 1200);
+      const timer = setTimeout(() => {
+        console.log("✅ Navigating to /");
+        navigate("/");
+      }, 1200);
       return () => clearTimeout(timer);
     }
   }, [auth.signin, navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("📝 SignIn - Form submitted with:", inputData);
     setErrors({});
     dispatch(login(inputData));
   };
@@ -57,7 +59,7 @@ export const SignIn = ({ onSwitchMode }) => {
   return (
     <div className="w-full max-w-sm flex flex-col">
       <header className="mb-6 text-center">
-        <h2 className="text-2xl font-semibold text-[#111]">Sign in</h2>
+        <h2 className="text-2xl font-bold text-[#111]">Sign in</h2>
         <p className="text-sm text-[#6b7280] mt-1">
           Nhập thông tin tài khoản để tiếp tục trò chuyện.
         </p>
@@ -69,7 +71,7 @@ export const SignIn = ({ onSwitchMode }) => {
           { label: "Password", name: "password", type: "password", placeholder: "••••••••" },
         ].map((field) => (
           <div key={field.name}>
-            <label className="block text-sm font-medium text-[#374151] mb-2">
+            <label className="block text-sm font-semibold text-[#374151] mb-2">
               {field.label}
             </label>
             <input
@@ -114,7 +116,7 @@ export const SignIn = ({ onSwitchMode }) => {
         Chưa có tài khoản?
         <button
           onClick={onSwitchMode}
-          className="ml-2 font-semibold text-[#00a884] hover:underline"
+          className="ml-2 font-bold text-[#00a884] hover:underline"
         >
           Sign Up
         </button>

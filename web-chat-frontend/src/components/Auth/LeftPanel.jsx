@@ -9,15 +9,15 @@ export const LeftPanel = () => (
                     <img src={whatsappLogo} alt="WhatsApp" className="h-24 w-24 object-contain" />
                 </div>
                 <div>
-                    <p className="text-sm font-semibold text-[#00a884] uppercase tracking-[0.3em]">Chào mừng trở lại</p>
-                    <h1 className="text-3xl font-semibold text-[#0f172a] leading-snug">
+                    <p className="text-sm font-bold text-[#00a884] uppercase tracking-[0.3em]">Chào mừng trở lại</p>
+                    <h1 className="text-3xl font-bold text-[#0f172a] leading-snug">
                         Tiếp tục cuộc trò chuyện của bạn
                     </h1>
                 </div>
             </div>
 
             <div className="bg-[#e6f6f1] border border-[#caeee0] rounded-3xl p-6 space-y-3 text-[#0f3d32] shadow-[0_18px_35px_rgba(0,168,132,0.08)]">
-                <p className="text-lg font-semibold">Đăng nhập nhanh, bảo mật cao</p>
+                <p className="text-lg font-bold">Đăng nhập nhanh, bảo mật cao</p>
                 <p className="text-sm leading-relaxed">
                     Hãy quay lại với nhóm chat, danh sách broadcast và kênh thông báo của bạn trong vài giây—
                     mọi dữ liệu đã được mã hóa và đồng bộ liền mạch.

@@ -9,12 +9,10 @@ import MessageCard from "../MessageCard";
 import { MessageType } from "../../constants/messageType";
 import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
-import axios from 'axios';
 import { pickFileMeta } from "../../utils/fileMeta";
 import { logger } from "../../utils/logger";
 import { formatDate, formatDateTime } from "../../utils/dateUtils";
 import { isGroupChat, getChatTitle, getChatAvatar } from "../../utils/chatUtils";
-import { ENV_CONFIG } from "../../config/env";
 import { downloadFile } from "../../utils/fileDownloader";
 import { uploadFileToCloudinary } from "../../utils/cloudinaryUploader";
 
@@ -24,7 +22,7 @@ const ChatBox = (props) => {
     currentChat,
     defaultAvatar,
     defaultGroupImage,
-    onOpenGroupInfo,
+    onOpenInfo,
     menuAnchor,
     isMenuOpen,
     onMenuOpen,
@@ -43,10 +41,14 @@ const ChatBox = (props) => {
     presenceByUserId = {},
   } = props;
 
+  // removed noisy prop snapshot log
+
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [pendingType, setPendingType] = useState(MessageType.TEXT);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  
 
   /* ---------- Image gallery state ---------- */
   const [galleryState, setGalleryState] = useState({ open: false, index: 0 });
@@ -307,6 +309,17 @@ const ChatBox = (props) => {
     return `${typingDisplayNames[0]} và ${count - 1} người khác đang nhập...`;
   }, [typingDisplayNames]);
 
+  const openInfo = () => {
+    if (onOpenInfo) onOpenInfo();
+  };
+
+  const handleOpenInfoFromMenu = useCallback(() => {
+    const active = typeof document !== "undefined" ? document.activeElement : null;
+    if (active && typeof active.blur === "function") active.blur();
+    if (onMenuClose) onMenuClose();
+    openInfo();
+  }, [onMenuClose, openInfo]);
+
   const handleSend = () => {
     const trimmed = content.trim();
     // Lọc chỉ lấy các file đã tải lên thành công
@@ -425,19 +438,19 @@ const ChatBox = (props) => {
       : formatLastSeen(partnerPresence?.lastSeen);
 
   return (
-    <div className="h-full flex flex-col bg-[#efeae2]">
+    <div className="h-full flex flex-col bg-[#efeae2] dark:bg-[#0a0a0a]">
       {/* ----- Header giữ nguyên ----- */}
-      <div className="flex items-center justify-between bg-[#f0f2f5] px-4 py-3 border-b border-gray-300">
+      <div className="flex items-center justify-between bg-[#f0f2f5] dark:bg-[#252525] px-4 py-3 border-b border-gray-300 dark:border-gray-700">
         <div className="flex items-center gap-3">
           {/* Back button for mobile */}
           <button
             onClick={onBack}
-            className="md:hidden mr-2 text-gray-600 hover:text-gray-900"
+            className="md:hidden mr-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
           >
             <IoArrowBack size={24} />
           </button>
 
-          <div className="flex items-center gap-3 cursor-pointer" onClick={onOpenGroupInfo}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={openInfo}>
             <div className="relative">
               <img
                 className="h-10 w-10 rounded-full object-cover"
@@ -457,8 +470,8 @@ const ChatBox = (props) => {
             </div>
 
             <div>
-              <p className="font-medium text-gray-800">{chatTitle}</p>
-              <p className="text-xs text-gray-500 flex items-center gap-1">
+              <p className="font-semibold text-gray-800 dark:text-white">{chatTitle}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 {!isGroupChat(currentChat) && (
                   <span
                     className={`
@@ -473,10 +486,10 @@ const ChatBox = (props) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-gray-600">
-          <AiOutlineSearch className="cursor-pointer hover:text-gray-800" size={20} />
+        <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+          <AiOutlineSearch className="cursor-pointer hover:text-gray-800 dark:hover:text-gray-300" size={20} />
           <BsThreeDotsVertical
-            className="cursor-pointer hover:text-gray-800"
+            className="cursor-pointer hover:text-gray-800 dark:hover:text-gray-300"
             size={20}
             onClick={onMenuOpen}
           />
@@ -485,9 +498,13 @@ const ChatBox = (props) => {
             anchorEl={menuAnchor}
             open={isMenuOpen}
             onClose={onMenuClose}
+            disableRestoreFocus
+            MenuListProps={{ autoFocusItem: false }}
           >
-            <MenuItem onClick={() => { onMenuClose(); onOpenGroupInfo(); }}>
-              Thông tin nhóm
+            <MenuItem
+              onClick={handleOpenInfoFromMenu}
+            >
+              {isGroupChat(currentChat) ? "Thông tin nhóm" : "Thông tin liên hệ"}
             </MenuItem>
           </Menu>
         </div>
@@ -495,7 +512,7 @@ const ChatBox = (props) => {
       {/* ----- Messages Area ----- */}
       <div
         ref={messageContainerRef}
-        className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-opacity-10"
+        className="flex-1 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-opacity-10 dark:bg-[linear-gradient(rgba(0,0,0,0.68),rgba(0,0,0,0.68)),url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] dark:bg-repeat relative"
       >
         {isLoadingOlder && (
           <div className="flex justify-center py-4">
@@ -516,7 +533,7 @@ const ChatBox = (props) => {
               <Fragment key={message.id}>
                 {showDivider && (
                   <div className="flex justify-center my-4">
-                    <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                    <div className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-3 py-1 rounded-full">
                       {currentDate}
                     </div>
                   </div>
@@ -536,22 +553,22 @@ const ChatBox = (props) => {
       </div>
 
       {/* ----- Input area giữ nguyên ----- */}
-      <div className="bg-[#f0f2f5] p-4 border-t border-gray-300">
-        <div className="flex flex-col gap-2 bg-white rounded-lg px-3 py-2 relative">
+      <div className="bg-[#f0f2f5] dark:bg-[#2a2a2a] p-4 border-t border-gray-300 dark:border-gray-700">
+        <div className="flex flex-col gap-2 bg-white dark:bg-[#3a3a3a] rounded-lg px-3 py-2 relative">
 
           <div className="flex items-center gap-2">
             <button
               ref={emojiButtonRef}
               type="button"
               onClick={() => setShowEmojiPicker((prev) => !prev)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               title="Chèn emoji"
             >
               <BsEmojiSmile size={20} />
             </button>
             <ImAttachment
               onClick={handlePickFile}
-              className="text-gray-500 cursor-pointer hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
               size={18}
             />
 
@@ -564,7 +581,7 @@ const ChatBox = (props) => {
             />
 
             <input
-              className="flex-1 bg-transparent outline-none px-3 py-2 text-gray-800 placeholder-gray-500"
+              className="flex-1 bg-transparent dark:text-white outline-none px-3 py-2 text-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="Nhập tin nhắn..."
               value={content}
               onChange={(e) => handleContentChange(e.target.value)}
@@ -575,14 +592,14 @@ const ChatBox = (props) => {
               <button
                 onClick={handleSend}
                 disabled={isUploading}
-                className="text-[#00a884] hover:text-[#008f75] disabled:opacity-50 transition-colors"
+                className="text-[#00a884] dark:text-[#4fab7a] hover:text-[#008f75] dark:hover:text-[#5eb883] disabled:opacity-50 transition-colors"
               >
                 <svg viewBox="0 0 24 24" height="24" width="24" fill="currentColor">
                   <path d="M1.101,21.757L23.8,12.028L1.101,2.3l0.011,7.912l13.623,1.816L1.112,13.845 L1.101,21.757z"></path>
                 </svg>
               </button>
             ) : (
-              <BsMicFill className="text-gray-500 cursor-pointer hover:text-gray-700" size={20} />
+              <BsMicFill className="text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" size={20} />
             )}
           </div>
 
@@ -631,7 +648,7 @@ const ChatBox = (props) => {
                             <span className="mt-1 text-xs">{file.progress}%</span>
                           </>
                         ) : (
-                          <span className="text-xs font-semibold">Lỗi tải</span>
+                          <span className="text-xs font-bold">Lỗi tải</span>
                         )}
                       </div>
                     )}
@@ -655,7 +672,7 @@ const ChatBox = (props) => {
               ref={emojiPickerRef}
               className="absolute bottom-[110%] left-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-2xl p-3 w-[320px] max-w-full"
             >
-              <p className="text-xs font-semibold text-gray-500 mb-2">Gửi nhanh</p>
+              <p className="text-xs font-bold text-gray-500 mb-2">Gửi nhanh</p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {QUICK_REACTIONS.map((emoji) => (
                   <button
@@ -742,7 +759,7 @@ const ChatBox = (props) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <p className="font-semibold">{currentImage.fileName}</p>
+              <p className="font-bold">{currentImage.fileName}</p>
               <p className="text-xs text-gray-300">
                 {currentImage.senderName} ·{" "}
                 {currentImage.timeStamp
@@ -783,6 +800,8 @@ const ChatBox = (props) => {
           </div>
         </div>
       )}
+
+      {/* Info sheets are rendered by parent (HomePage) via `onOpenInfo`. */}
     </div>
   );
 };

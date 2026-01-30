@@ -6,9 +6,11 @@ import toast from "react-hot-toast";
 import { updateChat } from "../../../redux/chat/action";
 import { logger } from "../../../utils/logger";
 import { uploadImageToCloudinary } from "../../../utils/cloudinaryUploader";
+import ChatMediaSection from "./ChatMediaSection";
+import ChatMessageSearchSection from "./ChatMessageSearchSection";
 
 const GroupInfoSheet = (props) => {
-  const { open, chat } = props;
+  const { open, chat, messages = [], onClose, onRequestJumpToMessage } = props;
 
   const [nameDraft, setNameDraft] = useState(chat?.chatName || "");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -18,7 +20,9 @@ const GroupInfoSheet = (props) => {
     setNameDraft(chat?.chatName || "");
   }, [chat]);
 
-  if (!open || !chat?.group) return null;
+  if (!open) return null;
+
+  // render suppressed in production; removed debug log
 
   const handleGroupAvatarChange = async (e) => {
     const file = e.target.files?.[0];
@@ -46,6 +50,12 @@ const GroupInfoSheet = (props) => {
     }
   };
 
+  const handleSelectMessage = (messageId) => {
+    if (!messageId) return;
+    onRequestJumpToMessage?.(messageId);
+    onClose?.();
+  };
+
   return (
     <GroupInfoMain
       {...props}
@@ -56,6 +66,8 @@ const GroupInfoSheet = (props) => {
     >
       <div className="flex flex-col gap-3">
         <GroupInfoMain.Details />
+        <ChatMessageSearchSection messages={messages} onSelectMessage={handleSelectMessage} />
+        <ChatMediaSection messages={messages} />
         <GroupMembersPanel {...props} />
       </div>
     </GroupInfoMain>

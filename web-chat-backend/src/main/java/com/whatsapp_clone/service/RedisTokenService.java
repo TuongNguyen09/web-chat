@@ -5,8 +5,8 @@ import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -35,8 +35,10 @@ public class RedisTokenService {
     /* REFRESH TOKEN */
     public void storeRefreshToken(String userId, String jti, long ttlSeconds) {
         log.info("Store refresh token jti={}, userId={}", jti, userId);
-        redisTemplate.opsForValue().set("rt:" + jti, userId, ttlSeconds, TimeUnit.SECONDS);
-        redisTemplate.opsForValue().set("user:rt:" + userId, jti, ttlSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue()
+                .set("rt:" + jti, userId, ttlSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue()
+                .set("user:rt:" + userId, jti, ttlSeconds, TimeUnit.SECONDS);
     }
 
     public String getUserIdByRefreshToken(String jti) {

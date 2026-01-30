@@ -4,6 +4,8 @@ import {
   GET_USERS_CHAT,
   UPDATE_CHAT,
   REMOVE_CHAT,
+  UPDATE_CHAT_LAST_MESSAGE,
+  SORT_CHATS_BY_LATEST,
 } from "./actionType";
 
 const initialValue = {
@@ -51,6 +53,27 @@ export const chatReducer = (store = initialValue, action) => {
         createdChat:
           store.createdChat?.id === action.payload ? null : store.createdChat,
       };
+
+    case UPDATE_CHAT_LAST_MESSAGE: {
+      const { chatId, lastMessage } = action.payload;
+      return {
+        ...store,
+        chats: store.chats.map((chat) =>
+          chat.id === chatId ? { ...chat, lastMessage } : chat
+        ),
+      };
+    }
+
+    case SORT_CHATS_BY_LATEST: {
+      return {
+        ...store,
+        chats: [...store.chats].sort((a, b) => {
+          const timeA = a.lastMessage?.timeStamp ? new Date(a.lastMessage.timeStamp).getTime() : 0;
+          const timeB = b.lastMessage?.timeStamp ? new Date(b.lastMessage.timeStamp).getTime() : 0;
+          return timeB - timeA;
+        }),
+      };
+    }
 
     default:
       return store;
