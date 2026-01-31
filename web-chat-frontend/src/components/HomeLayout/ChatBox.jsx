@@ -8,6 +8,7 @@ import { Menu, MenuItem } from "@mui/material";
 import MessageCard from "../MessageCard";
 import { MessageType } from "../../constants/messageType";
 import toast from "react-hot-toast";
+import { generateUUID } from "../../utils/uuidGenerator";
 import EmojiPicker from "emoji-picker-react";
 import { pickFileMeta } from "../../utils/fileMeta";
 import { logger } from "../../utils/logger";
@@ -178,7 +179,7 @@ const ChatBox = (props) => {
     if (!files.length) return;
 
     const initialAttachments = files.map(file => ({
-      id: crypto.randomUUID(), // ID duy nhất để theo dõi
+      id: generateUUID(), // ID duy nhất để theo dõi
       file: file,
       fileName: file.name,
       mimeType: file.type,
