@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import SelectedMember from "./SelectedMember";
 import NewGroup from "./NewGroup";
 import { searchUser } from "../../redux/auth/action";
+import { DEFAULT_AVATAR } from "../../constants/defaults";
 
 const CreateGroup = ({ setIsGroup, onClose }) => {
   const [newGroup, setNewGroup] = useState(false);
@@ -57,7 +58,7 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
   const renderSearchState = () => {
     if (!query.trim()) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500">
+        <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500 dark:text-gray-400">
           <BsSearch className="text-4xl mb-4 opacity-50" />
           <p className="text-center">Tìm kiếm người dùng để thêm vào nhóm</p>
           <p className="text-sm mt-2 text-center">
@@ -69,7 +70,7 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
 
     if (!auth.searchUser?.length) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500">
+        <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500 dark:text-gray-400">
           <p className="text-center">Không tìm thấy người dùng</p>
           <p className="text-sm mt-2 text-center">Thử tìm kiếm với tên khác</p>
         </div>
@@ -77,27 +78,24 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
     }
 
     return (
-      <div className="divide-y">
+      <div className="divide-y dark:divide-gray-700">
         {auth.searchUser.map((user) => (
           <button
             key={user.id}
             onClick={() => handleAddMember(user)}
-            className="w-full px-4 py-3 text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors text-gray-900 dark:text-white"
           >
             <div className="flex items-center gap-3">
               <img
                 className="h-12 w-12 rounded-full object-cover"
-                src={
-                  user.profilePicture ||
-                  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png"
-                }
+                src={user.profilePicture || DEFAULT_AVATAR}
                 alt={user.fullName}
               />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 truncate">
+                <p className="font-semibold text-gray-800 dark:text-white truncate">
                   {user.fullName}
                 </p>
-                <p className="text-sm text-gray-500 truncate">
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                   {user.email || user.phone || "No contact info"}
                 </p>
               </div>
@@ -109,8 +107,8 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="flex items-center px-4 py-3 bg-[#00a884] text-white">
+    <div className="h-full flex flex-col bg-white dark:bg-[#0a0a0a] dark:text-white">
+      <div className="flex items-center px-4 py-3 bg-[#00a884] dark:bg-[#1e6940] text-white">
         <button
           onClick={handleBack}
           className="p-2 hover:bg-[#008069] rounded-full transition-colors"
@@ -118,7 +116,7 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
           <BsArrowLeft className="text-xl" />
         </button>
         <div className="ml-4">
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-lg font-bold">
             {newGroup ? "Tạo nhóm mới" : "Thêm thành viên"}
           </h1>
           <p className="text-sm opacity-90">
@@ -132,7 +130,7 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
       {!newGroup ? (
         <div className="flex-1 flex flex-col">
           {groupMember.length > 0 && (
-            <div className="px-4 py-3 border-b bg-gray-50">
+            <div className="px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-[#252525]">
               <div className="flex flex-wrap gap-2">
                 {groupMember.map((member) => (
                   <SelectedMember
@@ -145,13 +143,13 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
             </div>
           )}
 
-          <div className="p-4 border-b">
+          <div className="p-4 border-b dark:border-gray-700">
             <div className="relative">
-              <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 ref={searchInputRef}
                 type="text"
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-[#00a884] transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white rounded-lg outline-none focus:bg-white dark:focus:bg-[#2a2a2a] focus:ring-2 focus:ring-[#00a884] transition-all placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Tìm kiếm người dùng..."
                 value={query}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -162,10 +160,10 @@ const CreateGroup = ({ setIsGroup, onClose }) => {
           <div className="flex-1 overflow-y-auto">{renderSearchState()}</div>
 
           {groupMember.length > 0 && (
-            <div className="border-t p-4 bg-white">
+            <div className="border-t dark:border-gray-700 p-4 bg-white dark:bg-[#252525]">
               <button
                 onClick={handleNext}
-                className="w-full py-3 bg-[#00a884] text-white font-medium rounded-lg hover:bg-[#008069] transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#00a884] text-white font-semibold rounded-lg hover:bg-[#008069] transition-colors flex items-center justify-center gap-2"
               >
                 <span>Tiếp theo</span>
                 <BsArrowRight />

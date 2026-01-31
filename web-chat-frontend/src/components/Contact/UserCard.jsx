@@ -1,8 +1,8 @@
 // src/components/Contact/UserCard.jsx
 import React from "react";
+import { DEFAULT_AVATAR } from "../../constants/defaults";
 
-const fallbackAvatar =
-  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png";
+const fallbackAvatar = DEFAULT_AVATAR;
 
 const UserCard = ({ user, onSelect }) => {
   const { fullName, phone, email, profile_picture, profilePicture } = user || {};
@@ -12,26 +12,26 @@ const UserCard = ({ user, onSelect }) => {
     <button
       type="button"
       onClick={() => onSelect?.(user)}
-      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left group"
+      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors text-left group text-gray-900 dark:text-white"
     >
       {/* Avatar Container */}
       <div className="relative shrink-0">
         <img
           src={avatarUrl}
           alt={fullName}
-          className="w-12 h-12 rounded-full object-cover border border-gray-100 group-hover:border-gray-200 transition-colors"
+          className="w-12 h-12 rounded-full object-cover border border-gray-100 dark:border-gray-700 group-hover:border-gray-200 dark:group-hover:border-gray-600 transition-colors"
         />
       </div>
 
       {/* Info Container */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <div className="flex justify-between items-baseline">
-          <p className="text-[15px] font-medium text-gray-900 truncate pr-2">
+          <p className="text-[15px] font-semibold text-gray-900 dark:text-white truncate pr-2">
             {fullName || "Người dùng không tên"}
           </p>
         </div>
         
-        <div className="flex flex-col text-sm text-gray-500">
+        <div className="flex flex-col text-sm text-gray-500 dark:text-gray-400">
            {/* Ưu tiên hiển thị Email, nếu không có thì hiện Phone, nếu không có thì placeholder */}
            {email ? (
              <span className="truncate">{email}</span>

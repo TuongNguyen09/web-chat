@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { bootstrapSession } from './redux/auth/action';
 import { useDispatch } from 'react-redux';
 import { useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
 
@@ -19,7 +20,7 @@ function App() {
   }, [dispatch]);
 
   return (
-    <>
+    <ThemeProvider>
       <div>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -37,7 +38,7 @@ function App() {
           error: { duration: 3000 },
         }}
       />
-    </>
+    </ThemeProvider>
   );
 }
 

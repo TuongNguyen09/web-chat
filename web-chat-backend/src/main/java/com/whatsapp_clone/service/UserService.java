@@ -91,7 +91,16 @@ public class    UserService implements UserDetailsService {
     }
 
     public List<UserResponse> searchUser(String keyword) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = getByEmailOrThrow(email);
+        
         List<User> users = userRepository.searchUser(keyword);
+        
+        // Filter out current user from search results
+        users = users.stream()
+                .filter(user -> !user.getId().equals(currentUser.getId()))
+                .collect(Collectors.toList());
+        
         if (users.isEmpty()) {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }

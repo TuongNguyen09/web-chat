@@ -1,0 +1,48 @@
+# Root .gitignore for web-chat project
+
+### OS Files ###
+.DS_Store
+.env
+Thumbs.db
+*.log
+
+### IDE & Editor ###
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+### Environment & Configuration ###
+# Local environment files (NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Note: .env.example files ARE committed (templates for developers)
+
+### Build & Dependencies ###
+node_modules/
+dist/
+build/
+target/
+*.jar
+*.war
+
+### Logs ###
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Documentation Files (Except README) ###
+*.md
+!README.md
+

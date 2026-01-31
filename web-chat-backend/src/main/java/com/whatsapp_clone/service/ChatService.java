@@ -18,6 +18,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -114,9 +115,25 @@ public class ChatService {
         Map<String, Message> previewByChatId = buildPreviewMap(keyword, chats);
         Map<String, List<Message>> recentMessages = loadRecentMessages(chats);
 
-        return chats.stream()
+        // Build map of chat -> latest message for sorting
+        Map<String, ChatResponse> responseMap = chats.stream()
                 .filter(chat -> filterChat(chat, keyword, previewByChatId))
-                .map(chat -> toResponse(chat, previewByChatId, recentMessages))
+                .collect(Collectors.toMap(
+                        Chat::getId,
+                        chat -> toResponse(chat, previewByChatId, recentMessages)
+                ));
+
+        // Sort by latest message timestamp (descending)
+        return responseMap.values().stream()
+                .sorted((c1, c2) -> {
+                    LocalDateTime t1 = c1.getLastMessage() != null && c1.getLastMessage().getTimeStamp() != null 
+                            ? c1.getLastMessage().getTimeStamp() 
+                            : LocalDateTime.MIN;
+                    LocalDateTime t2 = c2.getLastMessage() != null && c2.getLastMessage().getTimeStamp() != null 
+                            ? c2.getLastMessage().getTimeStamp() 
+                            : LocalDateTime.MIN;
+                    return t2.compareTo(t1);
+                })
                 .toList();
     }
 
@@ -129,12 +146,26 @@ public class ChatService {
                 ? messageRepository.findTopByChatIdOrderByTimestampDesc(chat.getId()).orElse(null)
                 : recent.get(recent.size() - 1);
 
-        return chatMapper.toChatResponse(
+        // If last message has null timestamp (old messages), set it to chat's createdAt as fallback
+        if (last != null && last.getTimestamp() == null && chat.getCreatedAt() != null) {
+            last.setTimestamp(
+                    LocalDateTime.ofInstant(chat.getCreatedAt(), java.time.ZoneId.systemDefault())
+            );
+        }
+
+        ChatResponse response = chatMapper.toChatResponse(
                 chat,
                 last,
                 recent,
                 userRepository
         );
+        
+        // FIX: Manually set timestamp since MapStruct mapper not working
+        if (response.getLastMessage() != null && last != null && last.getTimestamp() != null) {
+            response.getLastMessage().setTimeStamp(last.getTimestamp());
+        }
+
+        return response;
     }
 
     private Map<String, List<Message>> loadRecentMessages(List<Chat> chats) {

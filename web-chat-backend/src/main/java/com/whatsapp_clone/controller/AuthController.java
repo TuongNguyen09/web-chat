@@ -33,19 +33,16 @@ public class AuthController {
     @Value("${jwt.refreshable-duration}")
     long REFRESH_DURATION;
 
+        @NonFinal
+        @Value("${app.cookie.secure:false}")
+        boolean cookieSecure;
+
     // 🔹 Login -> Return JWT token
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@RequestBody @Valid AuthenticationRequest request) {
         AuthenticationResponse response = authService.authenticationResponse(request);
 
-        boolean isHttps = false; // dev
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", response.getRefreshToken())
-                .httpOnly(true)
-                .secure(isHttps)          // false ở dev
-                .sameSite(isHttps ? "None" : "Lax")
-                .path("/")
-                .maxAge(Duration.ofSeconds(REFRESH_DURATION))
-                .build();
+                ResponseCookie refreshCookie = buildRefreshCookie(response.getRefreshToken());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
@@ -87,14 +84,31 @@ public class AuthController {
 
     // 🔹 Refresh token
     @PostMapping("/refresh")
-    public ApiResponse<AuthenticationResponse> refresh(
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(
             @CookieValue("refresh_token") String refreshToken) throws Exception {
         RefreshRequest request = new RefreshRequest();
         request.setRefreshToken(refreshToken);
         AuthenticationResponse newToken = authService.refreshToken(request);
-        return ApiResponse.<AuthenticationResponse>builder()
-                .message("Token refreshed successfully!")
-                .result(newToken)
-                .build();
+
+        // Set refresh token mới vào HTTP cookie (giống như login)
+        ResponseCookie refreshCookie = buildRefreshCookie(newToken.getRefreshToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.<AuthenticationResponse>builder()
+                        .message("Token refreshed successfully!")
+                        .result(newToken)
+                        .build());
     }
+
+        private ResponseCookie buildRefreshCookie(String refreshToken) {
+                String sameSite = cookieSecure ? "None" : "Lax";
+                return ResponseCookie.from("refresh_token", refreshToken)
+                                .httpOnly(true)
+                                .secure(cookieSecure)
+                                .sameSite(sameSite)
+                                .path("/")
+                                .maxAge(Duration.ofSeconds(REFRESH_DURATION))
+                                .build();
+        }
 }

@@ -20,7 +20,7 @@ public interface UserRepository extends MongoRepository<User, String> {
     // ✅ BẮT BUỘC: Optional
     Optional<User> findByEmail(String email);
 
-    @Query("{ $or: [ { 'full_name': { $regex: ?0, $options: 'i' } }, { 'email': { $regex: ?0, $options: 'i' } } ] }")
+    @Query("{ $or: [ { 'full_name': { $eq: ?0 } }, { 'email': { $eq: ?0 } }, { 'phone': { $eq: ?0 } } ] }")
     List<User> searchUser(String keyword);
 
 }

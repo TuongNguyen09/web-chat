@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /whatsapp
+
+spring:
+  data:
+    mongodb:
+      # Format: mongodb://username:password@host:port/database?authSource=admin
+      # Ví dụ: mongodb://root:your_password@localhost:27017/whatsapp?authSource=admin
+      uri: mongodb://root:YOUR_MONGODB_PASSWORD@localhost:27017/whatsapp?authSource=admin
+    redis:
+      # Redis configuration
+      host: localhost
+      port: 6379
+      password: YOUR_REDIS_PASSWORD
+      timeout: 6000ms
+
+jwt:
+  # Generate strong JWT key: openssl rand -base64 32
+  signerKey: "YOUR_JWT_SECRET_KEY_HERE_GENERATE_WITH_openssl"
+  valid-duration: 3600
+  refreshable-duration: 7200
+
+app:
+  cookie:
+    # Set true khi deploy HTTPS để cookie có SameSite=None; false cho môi trường dev HTTP
+    secure: false
+
+# ==========================================
+# SETUP GUIDE:
+# ==========================================
+# 1. MongoDB:
+#    - Install MongoDB locally or use Docker
+#    - Default: mongodb://root:123456@localhost:27017/whatsapp
+#    - Change password in uri above
+#
+# 2. Redis:
+#    - Install Redis locally or use Docker
+#    - Default: localhost:6379 with password "123456"
+#    - Change password above
+#
+# 3. JWT Secret Key:
+#    - Generate: openssl rand -base64 32
+#    - Or use any strong 32+ character string
+#
+# 4. Copy this file and rename to application.yaml
+#    - cp application-example.yaml application.yaml
+#    - DO NOT commit application.yaml to git!
+# ==========================================
