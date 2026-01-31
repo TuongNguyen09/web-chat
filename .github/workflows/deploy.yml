@@ -21,7 +21,7 @@ jobs:
     - name: Build and Push Backend
       uses: docker/build-push-action@v5
       with:
-        context: ./backend
+        context: ./web-chat-backend
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/web-chat-backend:latest
 
@@ -29,7 +29,7 @@ jobs:
     - name: Build and Push Frontend
       uses: docker/build-push-action@v5
       with:
-        context: ./frontend
+        context: ./web-chat-frontend
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/web-chat-frontend:latest
 
