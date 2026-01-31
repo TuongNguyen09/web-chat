@@ -60,15 +60,17 @@ jobs:
         script: |
           cd /home/${{ secrets.EC2_USER }}/app
           
-          # Tạo file .env chứa biến môi trường từ GitHub Secrets
+          # 1. Tạo file .env chứa biến môi trường từ GitHub Secrets
           echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
           echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
           echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
           echo "JWT_SIGNER_KEY=${{ secrets.JWT_SIGNER_KEY }}" >> .env
           
-          # Pull image mới nhất và chạy lại container
-          docker-compose pull
-          docker-compose up -d --remove-orphans
+          # 2. Pull image mới nhất (Dùng lệnh mới: docker compose)
+          sudo docker compose pull
           
-          # Dọn dẹp image cũ cho đỡ tốn dung lượng
-          docker image prune -f
+          # 3. Chạy container (Dùng lệnh mới và thêm sudo)
+          sudo docker compose up -d --remove-orphans
+          
+          # 4. Dọn dẹp image rác
+          sudo docker image prune -f
