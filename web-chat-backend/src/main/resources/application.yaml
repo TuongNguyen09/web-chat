@@ -1,0 +1,30 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /whatsapp
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 6000ms
+
+jwt:
+  signerKey: ${JWT_SIGNER_KEY}
+  valid-duration: 3600
+  refreshable-duration: 7200
+
+app:
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info

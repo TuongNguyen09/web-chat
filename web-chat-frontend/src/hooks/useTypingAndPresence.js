@@ -29,9 +29,9 @@ const useTypingAndPresence = (
 
     // Handle incoming typing event
     const handleIncomingTypingEvent = useCallback(
-        (payload) => {
+        (message) => {
             try {
-                const data = JSON.parse(payload.body);
+                const data = JSON.parse(message.body);
                 if (data.userId === currentUserId) return;
                 dispatch(handleTypingPush(data));
             } catch (err) {
@@ -88,7 +88,10 @@ const useTypingAndPresence = (
             if (!stompClient || !chatId) return;
             try {
                 const destination = typing ? "/app/typing/start" : "/app/typing/stop";
-                stompClient.send(destination, {}, JSON.stringify({ chatId }));
+                stompClient.publish({
+                    destination,
+                    body: JSON.stringify({ chatId }),
+                });
             } catch (err) {
                 logger.error("sendTypingSignal", err, { chatId, typing });
             }
@@ -98,9 +101,9 @@ const useTypingAndPresence = (
 
     // Handle presence event
     const handlePresenceEvent = useCallback(
-        (payload) => {
+        (message) => {
             try {
-                const data = JSON.parse(payload.body);
+                const data = JSON.parse(message.body);
                 dispatch(receivePresencePush(data));
             } catch (err) {
                 logger.error("handlePresenceEvent", err);

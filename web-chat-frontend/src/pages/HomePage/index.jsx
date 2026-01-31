@@ -451,7 +451,10 @@ const HomePage = () => {
             chatId: currentChat.id,
             senderId: auth.reqUser?.id,
         };
-        stompClient.send("/app/message", {}, JSON.stringify(payload));
+        stompClient.publish({
+            destination: "/app/message",
+            body: JSON.stringify(payload),
+        });
     };
 
     const handleDeleteMessage = async (messageId) => {

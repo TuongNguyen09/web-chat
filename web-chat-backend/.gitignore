@@ -33,9 +33,3 @@ build/
 .vscode/
 
 ### Application Configuration (Sensitive Data) ###
-src/main/resources/application.yaml
-src/main/resources/application.properties
-src/main/resources/application-*.yaml
-src/main/resources/application-*.properties
-!src/main/resources/application-example.yaml
-!src/main/resources/application.example.properties
