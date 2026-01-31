@@ -68,6 +68,8 @@ jobs:
           echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
           echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
           echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+          echo "SPRING_DATA_REDIS_HOST=redis_cache" >> .env
+          echo "SPRING_DATA_REDIS_PORT=6379" >> .env
           echo "JWT_SIGNER_KEY=${{ secrets.JWT_SIGNER_KEY }}" >> .env
           
           # 2. Pull image mới nhất (Dùng lệnh mới: docker compose)
