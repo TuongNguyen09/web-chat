@@ -9,6 +9,18 @@ RUN npm ci
 # Copy toàn bộ code
 COPY . .
 
+# 👇👇👇 THÊM ĐOẠN NÀY VÀO TRƯỚC LỆNH BUILD 👇👇👇
+# Khai báo biến nhận từ GitHub Actions (Build Args)
+ARG REACT_APP_API_URL
+ARG REACT_APP_WS_URL
+ARG REACT_APP_ENV
+
+# Gán giá trị vào biến môi trường để React sử dụng lúc build
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_WS_URL=$REACT_APP_WS_URL
+ENV REACT_APP_ENV=$REACT_APP_ENV
+# 👆👆👆 HẾT ĐOẠN CẦN THÊM 👆👆👆
+
 # Build ra thư mục 'build' hoặc 'dist'
 RUN npm run build
 
@@ -18,7 +30,7 @@ FROM nginx:alpine
 # Copy file build từ Stage 1 sang thư mục mặc định của Nginx
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy file cấu hình Nginx custom của mình vào (để đè file mặc định)
+# Copy file cấu hình Nginx custom của mình vào
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
