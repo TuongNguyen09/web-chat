@@ -1,5 +1,5 @@
 # --- Stage 1: Build bằng Maven ---
-FROM maven:3.8.9-amazoncorretto-21 AS build
+FROM maven:3.9-amazoncorretto-21 AS build
 WORKDIR /app
 
 # Copy file config maven trước để tận dụng cache
