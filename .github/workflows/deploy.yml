@@ -32,6 +32,10 @@ jobs:
         context: ./web-chat-frontend
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/web-chat-frontend:latest
+        build-args: |
+          REACT_APP_API_URL=http://35.77.150.219:8080/whatsapp
+          REACT_APP_WS_URL=http://35.77.150.219:8080/whatsapp/ws
+          REACT_APP_ENV=production
 
   deploy:
     needs: build-and-push
