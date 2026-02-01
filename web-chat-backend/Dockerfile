@@ -5,13 +5,13 @@ WORKDIR /app
 # Copy file config maven trước để tận dụng cache
 COPY pom.xml .
 # Tải các thư viện về (bước này sẽ được cache nếu pom.xml không đổi)
-RUN mvn dependency:go-offline
+RUN mvn dependency:go-offline --no-transfer-progress -q
 
 # Copy toàn bộ source code vào
 COPY src ./src
 
 # Build ra file .jar (bỏ qua test unit để build cho nhanh lúc deploy)
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests --no-transfer-progress -q
 
 # --- Stage 2: Chạy App bằng Amazon Corretto ---
 FROM amazoncorretto:21-alpine
