@@ -20,7 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -73,7 +73,7 @@ class MessageControllerTest {
                 .chatId("c1")
                 .content("Hello")
                 .type(MessageType.TEXT)
-                .timeStamp(LocalDateTime.now())
+                .timeStamp(Instant.now())
                 .build();
 
         pageResponse = PageResponse.<MessageResponse>builder()
