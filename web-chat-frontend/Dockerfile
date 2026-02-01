@@ -19,7 +19,6 @@ ARG REACT_APP_ENV
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV REACT_APP_WS_URL=$REACT_APP_WS_URL
 ENV REACT_APP_ENV=$REACT_APP_ENV
-# 👆👆👆 HẾT ĐOẠN CẦN THÊM 👆👆👆
 
 # Build ra thư mục 'build' hoặc 'dist'
 RUN npm run build

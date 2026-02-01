@@ -9,7 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,5 +49,5 @@ public class Message {
     Map<String, Object> metadata = new HashMap<>();
 
     @Field("time_stamp")
-    LocalDateTime timestamp;
+    Instant timestamp;
 }

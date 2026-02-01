@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -126,12 +126,12 @@ public class ChatService {
         // Sort by latest message timestamp (descending)
         return responseMap.values().stream()
                 .sorted((c1, c2) -> {
-                    LocalDateTime t1 = c1.getLastMessage() != null && c1.getLastMessage().getTimeStamp() != null 
+                    Instant t1 = c1.getLastMessage() != null && c1.getLastMessage().getTimeStamp() != null 
                             ? c1.getLastMessage().getTimeStamp() 
-                            : LocalDateTime.MIN;
-                    LocalDateTime t2 = c2.getLastMessage() != null && c2.getLastMessage().getTimeStamp() != null 
+                            : Instant.MIN;
+                    Instant t2 = c2.getLastMessage() != null && c2.getLastMessage().getTimeStamp() != null 
                             ? c2.getLastMessage().getTimeStamp() 
-                            : LocalDateTime.MIN;
+                            : Instant.MIN;
                     return t2.compareTo(t1);
                 })
                 .toList();
@@ -148,9 +148,7 @@ public class ChatService {
 
         // If last message has null timestamp (old messages), set it to chat's createdAt as fallback
         if (last != null && last.getTimestamp() == null && chat.getCreatedAt() != null) {
-            last.setTimestamp(
-                    LocalDateTime.ofInstant(chat.getCreatedAt(), java.time.ZoneId.systemDefault())
-            );
+            last.setTimestamp(chat.getCreatedAt());
         }
 
         ChatResponse response = chatMapper.toChatResponse(
