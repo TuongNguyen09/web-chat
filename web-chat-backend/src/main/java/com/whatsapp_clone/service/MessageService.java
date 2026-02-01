@@ -67,7 +67,7 @@ public class MessageService {
                 .attachments(attachments)
                 .linkPreview(request.getLinkPreview())
                 .metadata(metadata)
-                .timestamp(LocalDateTime.now())
+                .timestamp(java.time.Instant.now())
                 .build();
 
         Message saved = messageRepository.save(message);

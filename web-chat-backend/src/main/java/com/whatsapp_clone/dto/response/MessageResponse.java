@@ -6,7 +6,7 @@ import com.whatsapp_clone.dto.Attachment;
 import com.whatsapp_clone.dto.LinkPreview;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +20,7 @@ public class MessageResponse {
     MessageType type;
     String content;
     @JsonProperty("timeStamp")
-    LocalDateTime timeStamp;
+    Instant timeStamp;
     String chatId;
     UserResponse sender;
     List<Attachment> attachments;
