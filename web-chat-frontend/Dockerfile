@@ -9,7 +9,6 @@ RUN npm ci
 # Copy toàn bộ code
 COPY . .
 
-# 👇👇👇 THÊM ĐOẠN NÀY VÀO TRƯỚC LỆNH BUILD 👇👇👇
 # Khai báo biến nhận từ GitHub Actions (Build Args)
 ARG REACT_APP_API_URL
 ARG REACT_APP_WS_URL
