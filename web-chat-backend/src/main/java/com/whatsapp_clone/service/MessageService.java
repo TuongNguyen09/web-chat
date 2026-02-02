@@ -38,6 +38,7 @@ public class MessageService {
     UserRepository userRepository;
     MessageMapper messageMapper;
     UnreadCountService unreadCountService;
+    UserService userService;
 
     public MessageResponse sendMessage(SendMessageRequest request) {
         Chat chat = chatRepository.findById(request.getChatId())
@@ -47,6 +48,18 @@ public class MessageService {
 
         User sender = userRepository.findById(request.getSenderId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        // Check if sender is blocked by recipient in 1-1 chat
+        if (!chat.isGroup() && chat.getMemberIds().size() == 2) {
+            String recipientId = chat.getMemberIds().stream()
+                    .filter(id -> !id.equals(sender.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.CHAT_NOT_EXISTED));
+            
+            if (userService.isUserBlocked(recipientId, sender.getId())) {
+                throw new AppException(ErrorCode.USER_BLOCKED);
+            }
+        }
 
         MessageType type = Optional.ofNullable(request.getType()).orElse(MessageType.TEXT);
         validatePayload(type, request);

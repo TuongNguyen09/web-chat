@@ -129,4 +129,40 @@ public class ChatController {
                 .build();
     }
 
+    // 🔹 Check if current user is blocked by another user
+    @GetMapping("/check-block/{userId}")
+    public ApiResponse<java.util.Map<String, Object>> checkBlockStatus(@PathVariable String userId) {
+        User currentUser = userService.getCurrentUserEntity();
+        boolean blockedByUser = userService.isUserBlocked(userId, currentUser.getId());
+        boolean userBlockedByMe = userService.isUserBlocked(currentUser.getId(), userId);
+        
+        return ApiResponse.<java.util.Map<String, Object>>builder()
+                .message("Block status retrieved")
+                .result(java.util.Map.of(
+                        "isBlockedByUser", blockedByUser,
+                        "userBlockedByMe", userBlockedByMe
+                ))
+                .build();
+    }
+
+    // 🔹 Block a user
+    @PostMapping("/block/{targetUserId}")
+    public ApiResponse<?> blockUser(@PathVariable String targetUserId) {
+        userService.blockUser(targetUserId);
+
+        return ApiResponse.<String>builder()
+                .message("User blocked successfully!")
+                .build();
+    }
+
+    // 🔹 Unblock a user
+    @PostMapping("/unblock/{targetUserId}")
+    public ApiResponse<?> unblockUser(@PathVariable String targetUserId) {
+        userService.unblockUser(targetUserId);
+
+        return ApiResponse.<String>builder()
+                .message("User unblocked successfully!")
+                .build();
+    }
+
 }

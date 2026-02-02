@@ -9,6 +9,9 @@ const UserInfoMain = ({
     chat,
     currentUserId,
     onClose,
+    onRequestBlockUser,
+    onRequestDeleteChat,
+    blockStatus = { isBlockedByUser: false, userBlockedByMe: false },
     children
 }) => {
     const overlayRef = useRef(null);
@@ -20,6 +23,49 @@ const UserInfoMain = ({
     const handleOverlayClick = (e) => {
         if (e.target === overlayRef.current) onClose();
     };
+
+    // If user is blocked BY partner, show only blocked message
+    if (blockStatus?.isBlockedByUser) {
+        return createPortal(
+            <div
+                ref={overlayRef}
+                onClick={handleOverlayClick}
+                className="fixed inset-0 z-[1500] flex justify-end bg-black/50 backdrop-blur-sm transition-opacity"
+            >
+                <div className="w-full md:w-[400px] lg:w-[450px] h-full bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white shadow-2xl flex flex-col animate-slide-in-right">
+                    {/* Header */}
+                    <div className="flex items-center px-4 py-3 bg-white dark:bg-[#252525] border-b border-gray-100 dark:border-gray-700 shrink-0">
+                        <button
+                            onClick={onClose}
+                            className="p-2 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        >
+                            <AiOutlineClose className="text-gray-600 dark:text-gray-400 text-xl" />
+                        </button>
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Thông tin liên hệ</h2>
+                    </div>
+
+                    {/* Blocked Message */}
+                    <div className="flex-1 flex items-center justify-center px-6">
+                        <div className="text-center space-y-4">
+                            <p className="text-red-600 dark:text-red-400 font-semibold text-lg">
+                                Bạn đã bị chặn
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                Bạn không thể xem thông tin của người dùng này vì đã bị chặn.
+                            </p>
+                            <button
+                                onClick={() => onRequestBlockUser?.(partner.id, true)}
+                                className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium transition-colors"
+                            >
+                                Bỏ chặn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        );
+    }
 
     return createPortal(
       <div
@@ -65,14 +111,16 @@ const UserInfoMain = ({
                     <div className="bg-white dark:bg-[#252525] mt-3 shadow-sm divide-y dark:divide-gray-700">
                          <button
                             className="w-full flex items-center gap-4 px-6 py-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
-                            // onClick={...} 
+                            onClick={() => onRequestBlockUser?.(partner.id, blockStatus?.userBlockedByMe)}
                         >
                             <MdBlock className="text-xl" />
-                            <span className="font-semibold">Chặn {partner.fullName || "User"}</span>
+                            <span className="font-semibold">
+                                {blockStatus?.userBlockedByMe ? `Bỏ chặn ${partner.fullName || "User"}` : `Chặn ${partner.fullName || "User"}`}
+                            </span>
                         </button>
                         <button
                             className="w-full flex items-center gap-4 px-6 py-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
-                             // onClick={...} 
+                            onClick={() => onRequestDeleteChat?.()}
                         >
                             <MdDelete className="text-xl" />
                             <span className="font-semibold">Xóa đoạn chat</span>

@@ -38,6 +38,8 @@ public enum ErrorCode {
 
     // --- PERMISSION / ACCESS ---
     ACCESS_DENIED(3001, "Access denied", HttpStatus.FORBIDDEN),
+    INVALID_REQUEST(4001, "Invalid request", HttpStatus.BAD_REQUEST),
+    USER_BLOCKED(4002, "User has been blocked", HttpStatus.FORBIDDEN),
 
     // --- GENERAL ---
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR);

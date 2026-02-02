@@ -1,4 +1,5 @@
 import React, { Fragment, useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { AiOutlineSearch } from "react-icons/ai";
 import { BsThreeDotsVertical, BsEmojiSmile, BsMicFill, BsDownload } from "react-icons/bs";
 import { ImAttachment } from "react-icons/im";
@@ -16,6 +17,7 @@ import { formatDate, formatDateTime } from "../../utils/dateUtils";
 import { isGroupChat, getChatTitle, getChatAvatar } from "../../utils/chatUtils";
 import { downloadFile } from "../../utils/fileDownloader";
 import { uploadFileToCloudinary } from "../../utils/cloudinaryUploader";
+import { checkBlockStatus } from "../../redux/chat/action";
 
 const ChatBox = (props) => {
   const {
@@ -40,9 +42,13 @@ const ChatBox = (props) => {
     typingUsers = {},
     onTypingSignal,
     presenceByUserId = {},
+    onRequestBlockUser,
   } = props;
 
   // removed noisy prop snapshot log
+
+  const dispatch = useDispatch();
+  const [blockStatus, setBlockStatus] = useState({ isBlockedByUser: false, userBlockedByMe: false });
 
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [pendingType, setPendingType] = useState(MessageType.TEXT);
@@ -148,6 +154,27 @@ const ChatBox = (props) => {
     avatar: defaultAvatar,
     groupImage: defaultGroupImage
   });
+
+  /* ---------- Check block status when chat loads or changes ---------- */
+  useEffect(() => {
+    if (!partner || isGroupChat(currentChat)) {
+      // Not a 1-1 chat, reset block status
+      setBlockStatus({ isBlockedByUser: false, userBlockedByMe: false });
+      return;
+    }
+
+    const fetchBlockStatus = async () => {
+      try {
+        const status = await dispatch(checkBlockStatus({ userId: partner.id }));
+        setBlockStatus(status || { isBlockedByUser: false, userBlockedByMe: false });
+      } catch (error) {
+        logger.error("Failed to check block status", error);
+        setBlockStatus({ isBlockedByUser: false, userBlockedByMe: false });
+      }
+    };
+
+    fetchBlockStatus();
+  }, [currentChat, partner, dispatch]);
 
   const handlePickFile = () => fileInputRef.current?.click();
 
@@ -458,16 +485,6 @@ const ChatBox = (props) => {
                 src={chatAvatar}
                 alt="chat"
               />
-              {!isGroupChat(currentChat) && isPartnerOnline && (
-                <span
-                  className="
-          absolute -top-0.5 -left-0.5
-          h-3.5 w-3.5 rounded-full
-          border-2 border-white
-          bg-[#25D366]
-        "
-                />
-              )}
             </div>
 
             <div>
@@ -577,6 +594,19 @@ const ChatBox = (props) => {
 
       {/* ----- Input area giữ nguyên ----- */}
       <div className="bg-[#f0f2f5] dark:bg-[#2a2a2a] p-4 border-t border-gray-300 dark:border-gray-700">
+        {blockStatus?.isBlockedByUser ? (
+          <div className="flex items-center justify-center py-4 px-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <p className="text-center text-red-600 dark:text-red-400 font-medium">
+              Bạn đã bị chặn bởi người dùng này
+            </p>
+          </div>
+        ) : blockStatus?.userBlockedByMe ? (
+          <div className="flex items-center justify-center py-4 px-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+            <p className="text-center text-orange-600 dark:text-orange-400 font-medium">
+              Bạn đã chặn người dùng này
+            </p>
+          </div>
+        ) : (
         <div className="flex flex-col gap-2 bg-white dark:bg-[#3a3a3a] rounded-lg px-3 py-2 relative">
 
           <div className="flex items-center gap-2">
@@ -584,14 +614,17 @@ const ChatBox = (props) => {
               ref={emojiButtonRef}
               type="button"
               onClick={() => setShowEmojiPicker((prev) => !prev)}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              disabled={blockStatus?.isBlockedByUser || blockStatus?.userBlockedByMe}
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Chèn emoji"
             >
+
               <BsEmojiSmile size={20} />
             </button>
             <ImAttachment
               onClick={handlePickFile}
-              className="text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+              disabled={blockStatus?.isBlockedByUser || blockStatus?.userBlockedByMe}
+              className="text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               size={18}
             />
 
@@ -604,8 +637,9 @@ const ChatBox = (props) => {
             />
 
             <input
-              className="flex-1 bg-transparent dark:text-white outline-none px-3 py-2 text-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
-              placeholder="Nhập tin nhắn..."
+              disabled={blockStatus?.isBlockedByUser || blockStatus?.userBlockedByMe}
+              className="flex-1 bg-transparent dark:text-white outline-none px-3 py-2 text-gray-800 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              placeholder={blockStatus?.isBlockedByUser ? "Bạn đã bị chặn" : (blockStatus?.userBlockedByMe ? "Bạn đã chặn người này" : "Nhập tin nhắn...")}
               value={content}
               onChange={(e) => handleContentChange(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -614,8 +648,8 @@ const ChatBox = (props) => {
             {canSend ? (
               <button
                 onClick={handleSend}
-                disabled={isUploading}
-                className="text-[#00a884] dark:text-[#4fab7a] hover:text-[#008f75] dark:hover:text-[#5eb883] disabled:opacity-50 transition-colors"
+                disabled={isUploading || blockStatus?.isBlockedByUser || blockStatus?.userBlockedByMe}
+                className="text-[#00a884] dark:text-[#4fab7a] hover:text-[#008f75] dark:hover:text-[#5eb883] disabled:opacity-50 transition-colors disabled:cursor-not-allowed"
               >
                 <svg viewBox="0 0 24 24" height="24" width="24" fill="currentColor">
                   <path d="M1.101,21.757L23.8,12.028L1.101,2.3l0.011,7.912l13.623,1.816L1.112,13.845 L1.101,21.757z"></path>
@@ -731,6 +765,7 @@ const ChatBox = (props) => {
             {typingLabel || "\u00A0"}
           </div>
         </div>
+        )}
       </div>
       {/* ---------- Image Lightbox ---------- */}
       {galleryState.open && currentImage && (

@@ -158,4 +158,40 @@ public class    UserService implements UserDetailsService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
+
+    // Block user
+    public void blockUser(String targetUserId) {
+        User currentUser = getCurrentUserEntity();
+        
+        if (currentUser.getId().equals(targetUserId)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        // Initialize blocked list if null
+        if (currentUser.getBlockedList() == null) {
+            currentUser.setBlockedList(new java.util.ArrayList<>());
+        }
+
+        // Add to blocked list if not already there
+        if (!currentUser.getBlockedList().contains(targetUserId)) {
+            currentUser.getBlockedList().add(targetUserId);
+            userRepository.save(currentUser);
+        }
+    }
+
+    // Unblock user
+    public void unblockUser(String targetUserId) {
+        User currentUser = getCurrentUserEntity();
+        
+        if (currentUser.getBlockedList() != null) {
+            currentUser.getBlockedList().remove(targetUserId);
+            userRepository.save(currentUser);
+        }
+    }
+
+    // Check if user is blocked
+    public boolean isUserBlocked(String blockerId, String targetUserId) {
+        User blocker = getUserById(blockerId);
+        return blocker.getBlockedList() != null && blocker.getBlockedList().contains(targetUserId);
+    }
 }

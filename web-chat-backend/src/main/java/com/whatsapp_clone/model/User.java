@@ -34,4 +34,8 @@ public class User {
 
     @Field("password")
     String password;
+
+    @Field("blocked_list")
+    @JsonProperty("blockedList")
+    List<String> blockedList;
 }
