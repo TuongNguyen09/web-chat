@@ -145,3 +145,48 @@ export const updateChatLastMessage = ({ chatId, lastMessage }) => ({
 export const sortChatsByLatest = () => ({
   type: SORT_CHATS_BY_LATEST,
 });
+
+export const blockUser = ({ targetUserId }) => async (dispatch) => {
+  try {
+    const res = await authFetch(`/chats/block/${targetUserId}`, {
+      method: "POST",
+    });
+    await parseApiResponse(res, {
+      defaultErrorMessage: "Block user failed",
+    });
+    return true;
+  } catch (error) {
+    logger.error("blockUser", error, { targetUserId });
+    throw error;
+  }
+};
+
+export const unblockUser = ({ targetUserId }) => async (dispatch) => {
+  try {
+    const res = await authFetch(`/chats/unblock/${targetUserId}`, {
+      method: "POST",
+    });
+    await parseApiResponse(res, {
+      defaultErrorMessage: "Unblock user failed",
+    });
+    return true;
+  } catch (error) {
+    logger.error("unblockUser", error, { targetUserId });
+    throw error;
+  }
+};
+
+export const checkBlockStatus = ({ userId }) => async (dispatch) => {
+  try {
+    const res = await authFetch(`/chats/check-block/${userId}`, {
+      method: "GET",
+    });
+    const result = await parseApiResponse(res, {
+      defaultErrorMessage: "Check block status failed",
+    });
+    return result;
+  } catch (error) {
+    logger.error("checkBlockStatus", error, { userId });
+    return { isBlockedByUser: false, userBlockedByMe: false };
+  }
+};

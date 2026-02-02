@@ -32,6 +32,7 @@ public class ChatService {
     UserRepository userRepository;
     MessageRepository messageRepository;
     ChatMapper chatMapper;
+    UserService userService;
 
     /* ===================== CREATE CHAT ===================== */
 

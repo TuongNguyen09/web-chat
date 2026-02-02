@@ -26,6 +26,8 @@ import {
     deleteChat,
     updateChatLastMessage,
     sortChatsByLatest,
+    blockUser,
+    unblockUser,
 } from "../../redux/chat/action";
 import {
     fetchUnreadCounts,
@@ -516,6 +518,34 @@ const HomePage = () => {
         });
     };
 
+    const handleBlockUser = async (targetUserId, isUnblock = false) => {
+        try {
+            if (isUnblock) {
+                await dispatch(unblockUser({ targetUserId }));
+                toast.success(`Đã bỏ chặn người dùng`);
+            } else {
+                await dispatch(blockUser({ targetUserId }));
+                toast.success(`Đã chặn người dùng`);
+            }
+            setCurrentChat(null);
+            setIsUserInfoOpen(false);
+        } catch (error) {
+            toast.error(error.message || (isUnblock ? "Bỏ chặn người dùng thất bại" : "Chặn người dùng thất bại"));
+        }
+    };
+
+    const handleDeleteChatCallback = async () => {
+        if (!currentChat) return;
+        try {
+            await dispatch(deleteChat({ chatId: currentChat.id }));
+            toast.success("Đã xóa đoạn chat");
+            setCurrentChat(null);
+            setIsUserInfoOpen(false);
+        } catch (error) {
+            toast.error(error.message || "Xóa đoạn chat thất bại");
+        }
+    };
+
     // ========================================================================
     // RENDER
     // ========================================================================
@@ -595,6 +625,7 @@ const HomePage = () => {
                             typingUsers={typingByChat[currentChat?.id] || {}}
                             onTypingSignal={sendTypingSignal}
                             presenceByUserId={presenceByUserId}
+                            onRequestBlockUser={handleBlockUser}
                         />
                     ) : (
                         <EmptyChatState />
@@ -631,6 +662,8 @@ const HomePage = () => {
                     messages={messages}
                     onRequestJumpToMessage={handleJumpToMessageFromInfo}
                     currentUserId={currentUserId}
+                    onRequestBlockUser={handleBlockUser}
+                    onRequestDeleteChat={handleDeleteChatCallback}
                 />
             )}
         </div>
