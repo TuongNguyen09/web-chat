@@ -78,11 +78,18 @@ const renderTextWithLinks = (text) => {
 
 // Use centralized downloadFile utility instead of local implementation
 
-const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
-  const { id, content, attachments, type, timeStamp } = message;
+const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick, isGroupChat, isFirstFromSender, isLastFromSender, defaultAvatar }) => {
+  const { id, content, attachments, type, timeStamp, sender } = message;
   const safeAttachments = Array.isArray(attachments) ? attachments : [];
 
   const palette = isRequestMessage ? BUBBLE_PALETTE.other : BUBBLE_PALETTE.own;
+  const senderName = sender?.fullName || "Unknown";
+  const senderAvatar = sender?.avatar || defaultAvatar;
+  
+  // Show username on first message from sender in group OR always in 1-1
+  const showUsername = isRequestMessage && isFirstFromSender && isGroupChat;
+  // Show avatar on last message from sender (for both group and 1-1)
+  const showAvatar = isRequestMessage && isLastFromSender;
 
   const imageAttachments = safeAttachments.filter(att => att.mimeType?.startsWith("image/"));
   const otherAttachments = safeAttachments.filter(att => !att.mimeType?.startsWith("image/"));
@@ -249,55 +256,83 @@ const MessageCard = ({ message, isRequestMessage, onDelete, onImageClick }) => {
 
   return (
     <div
-      className={`w-full flex mb-3 ${isRequestMessage ? "justify-start" : "justify-end"
+      className={`w-full flex ${isRequestMessage ? "justify-start" : "justify-end"
         }`}
       data-message-id={id}
     >
-      <div className="group flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleOpenMenu}
-          className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00a884]"
-        >
-          <BsThreeDotsVertical />
-        </button>
+      <div className={`flex gap-2 ${isRequestMessage ? "flex-row items-center" : "flex-row-reverse items-center"}`}>
+        {/* Avatar - hiển thị dưới message cuối cùng trong nhóm tin nhắn liên tục */}
+        {showAvatar ? (
+          <div className="flex-shrink-0 relative group mb-1">
+            <img
+              src={senderAvatar}
+              alt={senderName}
+              className="h-8 w-8 rounded-full object-cover"
+            />
+            {/* Tooltip username */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 dark:bg-gray-900 text-white text-xs rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10 shadow-lg">
+              {senderName}
+            </div>
+          </div>
+        ) : (
+          isRequestMessage && <div className="flex-shrink-0 w-8" />
+        )}
 
-        <div
-          className={`py-2 px-3 rounded-2xl shadow-md dark:shadow-lg max-w-sm break-words whitespace-pre-wrap flex flex-col gap-2 ${bubbleClass}`}
-        >
-          {content && (
-            <p className="leading-relaxed break-words text-[15px] font-semibold text-gray-700 dark:text-gray-300 tracking-wide">
-              {renderTextWithLinks(content)}
-            </p>
-          )}
+        <div className="group flex items-center gap-2 flex-1">
+          <button
+            type="button"
+            onClick={handleOpenMenu}
+            className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00a884]"
+          >
+            <BsThreeDotsVertical />
+          </button>
 
-          {imageAttachments.length > 0 && (
-            <>
-              {renderImageGrid(imageAttachments)}
-              {/* {imageAttachments.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    imageAttachments.forEach(async (att) =>
-                      await downloadFile(att.url, att.fileName || "image")
-                    )
-                  }
-                  title="Tải tất cả ảnh trong tin"
-                  aria-label="Tải tất cả ảnh trong tin"
-                  className="inline-flex items-center gap-1 rounded-full bg-white/40 px-2 py-1 text-[#0a7755] dark:text-[#4db876] hover:bg-white/70 dark:hover:bg-white/20"
-                >
-                  <BsDownload size={14} />
-                </button>
-              )} */}
-            </>
-          )}
+          <div className="flex flex-col">
+            {/* Username - hiển thị trên message đầu tiên trong nhóm (group chat) */}
+            {showUsername && (
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                {senderName}
+              </p>
+            )}
 
-          {otherAttachments.length > 0 &&
-            otherAttachments.map((attachment) => renderAttachment(attachment))}
+            <div
+              className={`py-2 px-3 rounded-2xl shadow-md dark:shadow-lg max-w-sm break-words whitespace-pre-wrap flex flex-col gap-2 ${bubbleClass}`}
+            >
+              {content && (
+                <p className="leading-relaxed break-words text-[15px] font-semibold text-gray-700 dark:text-gray-300 tracking-wide">
+                  {renderTextWithLinks(content)}
+                </p>
+              )}
 
-          {formattedTime && (
-            <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-auto font-normal">{formattedTime}</span>
-          )}
+              {imageAttachments.length > 0 && (
+                <>
+                  {renderImageGrid(imageAttachments)}
+                  {/* {imageAttachments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        imageAttachments.forEach(async (att) =>
+                          await downloadFile(att.url, att.fileName || "image")
+                        )
+                      }
+                      title="Tải tất cả ảnh trong tin"
+                      aria-label="Tải tất cả ảnh trong tin"
+                      className="inline-flex items-center gap-1 rounded-full bg-white/40 px-2 py-1 text-[#0a7755] dark:text-[#4db876] hover:bg-white/70 dark:hover:bg-white/20"
+                    >
+                      <BsDownload size={14} />
+                    </button>
+                  )} */}
+                </>
+              )}
+
+              {otherAttachments.length > 0 &&
+                otherAttachments.map((attachment) => renderAttachment(attachment))}
+
+              {formattedTime && (
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-auto font-normal">{formattedTime}</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
