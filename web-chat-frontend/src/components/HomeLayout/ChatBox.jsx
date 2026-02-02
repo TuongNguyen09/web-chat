@@ -521,7 +521,7 @@ const ChatBox = (props) => {
           </div>
         )}
 
-        <div className="px-4 py-6 space-y-2">
+        <div className="px-4 py-6">
           {messages.map((message, index) => {
             const currentDate = message.timeStamp ? formatDate(message.timeStamp) : null;
             const previousDate =
@@ -529,6 +529,22 @@ const ChatBox = (props) => {
                 ? formatDate(messages[index - 1].timeStamp)
                 : null;
             const showDivider = currentDate && currentDate !== previousDate;
+            
+            // Check if this is the first message from this sender
+            const previousSenderId = index > 0 ? messages[index - 1].sender?.id : null;
+            const currentSenderId = message.sender?.id;
+            const nextSenderId = index < messages.length - 1 ? messages[index + 1].sender?.id : null;
+            
+            // Check dates
+            const nextDate = index < messages.length - 1 && messages[index + 1].timeStamp 
+              ? formatDate(messages[index + 1].timeStamp) 
+              : null;
+            const dateChanged = currentDate !== nextDate;
+            
+            // First from sender if different user OR if date changes (new day same user)
+            const isFirstFromSender = previousSenderId !== currentSenderId || showDivider;
+            // Last from sender if next user is different OR if date changes with next message (same user new day)
+            const isLastFromSender = nextSenderId !== currentSenderId || (nextSenderId === currentSenderId && dateChanged);
 
             return (
               <Fragment key={message.id}>
@@ -539,14 +555,20 @@ const ChatBox = (props) => {
                     </div>
                   </div>
                 )}
-                <MessageCard
-                  message={message}
-                  isRequestMessage={message.sender?.id !== auth.reqUser?.id}
-                  onDelete={onDeleteMessage}
-                  onImageClick={(attachment) =>
-                    openGalleryAt(attachment?.id || attachment?.url)
-                  }
-                />
+                <div className={isLastFromSender ? "mb-6" : "mb-2"}>
+                  <MessageCard
+                    message={message}
+                    isRequestMessage={message.sender?.id !== auth.reqUser?.id}
+                    isGroupChat={isGroupChat(currentChat)}
+                    isFirstFromSender={isFirstFromSender}
+                    isLastFromSender={isLastFromSender}
+                    defaultAvatar={defaultAvatar}
+                    onDelete={onDeleteMessage}
+                    onImageClick={(attachment) =>
+                      openGalleryAt(attachment?.id || attachment?.url)
+                    }
+                  />
+                </div>
               </Fragment>
             );
           })}

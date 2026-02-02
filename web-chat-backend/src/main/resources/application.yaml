@@ -22,7 +22,6 @@ jwt:
 app:
   cookie:
     secure: ${COOKIE_SECURE:false}
-
 management:
   endpoints:
     web:
